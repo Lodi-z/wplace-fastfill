@@ -2,10 +2,12 @@ class SettingsData {
     openWplaceOnStart := false
     customUrl := ""
     openCustomOnStart := false
-    pauseKey := "Space"
-    pauseKey_default := "Space"
-    toggleKey := "c"
-    toggleKey_default := "c"
+    pauseKey := "Esc"
+    pauseKey_default := "Esc"
+    fillKey := "z"
+    fillKey_default := "z"
+    pickKey := "x"
+    pickKey_default := "x"
     wplaceWeb := "https://wplace.live/"
     openThisPageOnStart := true
 }
@@ -13,8 +15,9 @@ class WplaceConfig {
     static file := "wplace_config.ini"
     static load() {
         if FileExist(WplaceConfig.file) {
-            _SettingsData.pauseKey := IniRead(WplaceConfig.file, "Hotkeys", "PauseKey", "Space")
-            _SettingsData.toggleKey := IniRead(WplaceConfig.file, "Hotkeys", "ToggleKey", "C")
+            _SettingsData.pauseKey := IniRead(WplaceConfig.file, "Hotkeys", "PauseKey", _SettingsData.pauseKey_default)
+            _SettingsData.fillKey := IniRead(WplaceConfig.file, "Hotkeys", "FillKey", _SettingsData.fillKey_default)
+            _SettingsData.pickKey := IniRead(WplaceConfig.file, "Hotkeys", "PickKey", _SettingsData.pickKey_default)
             _SettingsData.openThisPageOnStart := IniRead(WplaceConfig.file, "Startup", "OpenThisPage", "1")
             _SettingsData.openWplaceOnStart := IniRead(WplaceConfig.file, "Startup", "OpenWplace", "0")
             _SettingsData.customUrl := IniRead(WplaceConfig.file, "Startup", "CustomUrl", "")
@@ -23,7 +26,8 @@ class WplaceConfig {
     }
     static save() {
         IniWrite(_SettingsData.pauseKey, WplaceConfig.file, "Hotkeys", "PauseKey")
-        IniWrite(_SettingsData.toggleKey, WplaceConfig.file, "Hotkeys", "ToggleKey")
+        IniWrite(_SettingsData.fillKey, WplaceConfig.file, "Hotkeys", "FillKey")
+        IniWrite(_SettingsData.pickKey, WplaceConfig.file, "Hotkeys", "PickKey")
         IniWrite(_SettingsData.openThisPageOnStart, WplaceConfig.file, "Startup", "OpenThisPage")
         IniWrite(_SettingsData.openWplaceOnStart, WplaceConfig.file, "Startup", "OpenWplace")
         IniWrite(_SettingsData.customUrl, WplaceConfig.file, "Startup", "CustomUrl")
@@ -34,151 +38,95 @@ class PauseGui {
     static instance := false
     static Show() {
         if !this.instance {
-            StatusGui.Close()
             this.instance := Gui()
-            this.instance.Opt("AlwaysOnTop -SysMenu +ToolWindow")
-            this.instance.Title := "Ciallo～(∠・ω< )⌒★				 Wplace工具 - 暂停中"
+            this.instance.Opt("AlwaysOnTop -SysMenu +ToolWindow +DPIScale")
+            this.instance.Title := "Ciallo～(∠・ω< )⌒★                  Wplace工具 - 暂停中"
             this.instance.SetFont("s14 bold")
-            this.instance.AddText(, "当前脚本已暂停，可设置启动选项和快捷键。")
+            this.instance.AddText(, "当前脚本已暂停，可设置启动选项和快捷键")
             this.instance.SetFont("s12 bold")
-            this.instance.AddText("x10 y+10", "作者：洛迪 |")
+            this.instance.AddText("x30 y+10", "作者：洛迪 |")
             this.instance.SetFont()
-            this.instance.AddLink(" x+10",
-                'b站主页：<a href="https://space.bilibili.com/418324770">https://space.bilibili.com/418324770</a>')
+            this.instance.AddLink("x+10",
+                'b站主页：<a href="https://space.bilibili.com/418324770">space.bilibili.com/418324770</a>')
+            tab := this.instance.AddTab3("x22 y+10 w480 h440", ["介绍", "设置"])
+            tab.UseTab("介绍")
             this.instance.SetFont("s12 bold")
-            this.instance.AddText("x10 y+18", "功能说明：")
+            this.instance.AddText("x30 y120", "功能说明：")
             this.instance.SetFont()
-            this.instance.AddText("x20", "
-			(
-				1-通过切换状态可使【鼠标左键在Wplace窗口上点击时执行多种功能】
-				                          （其他窗口不受影响！）
+            this.instance.AddText("x40 y+10 w550", "
+        (
+1-通过持续按住功能按键时可使【鼠标左键点击时执行多种功能】
 
-				 ·当状态为“快速填充”时，长按左键连续填充当前颜色
-				
-				 ·当状态为“取色并填入”时，点击左键取色后立即填入该颜色
+ ·当持续按住【填充键】时，长按左键连续填充当前颜色
 
-				   用途-点击Blue Marble生成的小方块，取色填色更方便了
+ ·当持续按住【取色键】时，点击左键取色后立即填入该颜色
 
-				   并且做了额外的判断，如果点击到小方块之外的地方则不会执行
+   用途-点击Blue Marble生成的小方块，取色填色更方便了
 
+   并且做了额外的判断，如果点击到地图背景色则不会执行
 
-				2-拖动功能替换为鼠标中键
+   如果点击到上一次取色的颜色，则直接填入，不会再次浪费时间取色
+
+2-拖动画布（地图）也可直接使用鼠标中键
+
+3-右键擦除颜色（网站原有功能，只是提醒一下）
 )"
             )
             this.instance.SetFont("s12 bold")
-            this.instance.AddText("x10 y+18", "注意事项：")
+            this.instance.AddText("x30 y+20", "注意事项：")
             this.instance.SetFont()
-            this.instance.AddText("x20", "脚本运行时并且鼠标在Wplace窗口时，脚本会替换掉左键和中间，所以")
-            this.instance.SetFont("bold")
-            this.instance.AddText("y+8", "在Wplace窗口时如需使用原先的键请先按住Alt键")
-            this.instance.SetFont()
+            this.instance.AddText("x40 y+10 w550", "键位可替换，如需替换，请移步设置选项卡（上方）")
+            tab.UseTab("设置")
             this.instance.SetFont("s12 bold")
-            this.instance.AddText("x10 y+18", "启动设置")
+            this.instance.AddText("x30 y120", "启动设置")
             this.instance.SetFont()
-            this.instance.AddCheckbox("x20 vOpenThisPage h20", "启动时自动打开本页面").Value := _SettingsData.openThisPageOnStart
-            this.instance.AddCheckbox("x20 vOpenWplace h20", "启动时自动打开Wplace网站").Value := _SettingsData.openWplaceOnStart
-            this.instance.AddLink("w160 x+10", '<a href="' _SettingsData.wplaceWeb '">' _SettingsData.wplaceWeb '</a>')
-            this.instance.AddCheckbox("x20 vOpenCustom h20", "启动时自动打开自定义程序").Value := _SettingsData.openCustomOnStart
-            this.instance.AddEdit("vCustomUrl w160 x+10", _SettingsData.customUrl)
+            this.instance.AddCheckbox("x40 y+20 vOpenThisPage", "启动时自动打开本页面").Value := _SettingsData.openThisPageOnStart
+            this.instance.AddCheckbox("x40 y+20 vOpenWplace", "启动时自动打开Wplace网站").Value := _SettingsData.openWplaceOnStart
+            this.instance.AddLink("yp", '<a href="' _SettingsData.wplaceWeb '">' _SettingsData.wplaceWeb '</a>')
+            this.instance.AddCheckbox("x40 y+20 vOpenCustom", "启动时自动打开自定义程序").Value := _SettingsData.openCustomOnStart
+            this.instance.AddEdit("vCustomUrl w160 yp", _SettingsData.customUrl)
             this.instance.SetFont("s12 bold")
-            this.instance.AddText("x10 y+18", "自定义按键（为空时保存则忽略本次设置）：")
+            this.instance.AddText("x30 y+30", "自定义按键（为空时保存则忽略本次设置）：")
             this.instance.SetFont()
-            this.instance.AddText("x20 w80 y+8", "暂停脚本键：")
-            pauseHK := this.instance.AddHotkey("vPauseKey x+10 w120", _SettingsData.pauseKey)
-            this.instance.AddButton("x+10 w60", "重置").OnEvent("Click", (*) => (pauseHK.Value := _SettingsData.pauseKey_default
+            this.instance.AddText("x40 y+20 w120", "暂停脚本键：")
+            pauseHK := this.instance.AddHotkey("vPauseKey yp w165", _SettingsData.pauseKey)
+            this.instance.AddButton("yp w60", "重置").OnEvent("Click", (*) => (pauseHK.Value := _SettingsData.pauseKey_default
             ))
-            this.instance.AddText("x20 w80 y+8", "切换状态键：")
-            toggleHK := this.instance.AddHotkey("vToggleKey x+10 w120", _SettingsData.toggleKey)
-            this.instance.AddButton("x+10 w60", "重置").OnEvent("Click", (*) => (toggleHK.Value := _SettingsData.toggleKey_default
+            this.instance.AddText("x40 y+20 w120", "填充键：")
+            fillHK := this.instance.AddHotkey("vFillKey yp w165", _SettingsData.fillKey)
+            this.instance.AddButton("yp w60", "重置").OnEvent("Click", (*) => (fillHK.Value := _SettingsData.fillKey_default
             ))
-            this.instance.AddButton("x10 w190 y+18", "关闭脚本").OnEvent("Click", (*) => ExitApp())
-            this.instance.AddButton("x+20 w190", "保存设置并开始使用").OnEvent("Click", (*) => this.SaveAndClose())
+            this.instance.AddText("x40 y+20 w120", "取色键：")
+            pickHK := this.instance.AddHotkey("vPickKey yp w165", _SettingsData.pickKey)
+            this.instance.AddButton("yp w60", "重置").OnEvent("Click", (*) => (pickHK.Value := _SettingsData.pickKey_default
+            ))
+            this.instance.AddButton("x30 y+20 w380", "保存设置并重启该脚本").OnEvent("Click", (*) => this.SaveAndReload())
+            tab.UseTab()
+            this.instance.AddButton("x22 w234", "关闭脚本").OnEvent("Click", (*) => ExitApp())
+            this.instance.AddButton("yp w234", "开始使用").OnEvent("Click", (*) => this.Close())
             this.instance.OnEvent("Close", (*) => ExitApp())
             this.instance.Show()
             Suspend(true)
         }
     }
-    static SaveAndClose() {
-        if this.instance {
-            if _SettingsData.openWplaceOnStart != this.instance["OpenWplace"].Value
-                _SettingsData.openWplaceOnStart := this.instance["OpenWplace"].Value
-            if _SettingsData.openThisPageOnStart != this.instance["OpenThisPage"].Value
-                _SettingsData.openThisPageOnStart := this.instance["OpenThisPage"].Value
-            if _SettingsData.customUrl != this.instance["CustomUrl"].Text
-                _SettingsData.customUrl := this.instance["CustomUrl"].Text
-            if _SettingsData.openCustomOnStart != this.instance["OpenCustom"].Value
-                _SettingsData.openCustomOnStart := this.instance["OpenCustom"].Value
-            newPauseKey := this.instance["PauseKey"].Value
-            if newPauseKey && newPauseKey != _SettingsData.pauseKey
-                SetHotKey_PauseGuiShow(newPauseKey)
-            newToggleKey := this.instance["ToggleKey"].Value
-            if newToggleKey && newToggleKey != _SettingsData.toggleKey
-                SetHotKey_StatusGuiToggleActive(newToggleKey)
-            WplaceConfig.save()
-            Suspend(false)
-            try this.instance.Destroy()
-            this.instance := false
-            StatusGui.Show()
-        }
-    }
-    static StartupActions() {
-        if _SettingsData.openWplaceOnStart {
-            Run(_SettingsData.wplaceWeb)
-        }
-        if _SettingsData.openCustomOnStart && _SettingsData.customUrl != "" {
-            Run(_SettingsData.customUrl)
-        }
-    }
-}
-class StatusType {
-    static Fill := 0
-    static Pick := 1
-}
-class StatusGui {
-    static instance := false
-    static status := StatusType.Fill
-    static statusMap := Map(
-        StatusType.Fill, "快速填充",
-        StatusType.Pick, "取色并填入"
-    )
-    static Show() {
-        if !this.instance {
-            this.instance := Gui()
-            this.instance.Opt("AlwaysOnTop -DPIScale -Caption +ToolWindow")
-            this.instance.SetFont("s12 bold")
-            this.instance.AddText("x5 vStatusText", "状态：文字文字文字")
-            this.instance.SetFont()
-            this.instance.AddButton("w120", "切换状态").OnEvent("Click", (*) => this.ToggleActive())
-            this.instance.AddText(, "Ciallo～(∠・ω< )⌒★")
-            this.instance.AddButton("w120", "暂停脚本").OnEvent("Click", (*) => PauseGui.Show())
-            this.instance.AddButton("w120", "关闭脚本").OnEvent("Click", (*) => ExitApp())
-            this.instance.SetFont("s12 bold")
-            this.instance.AddText(, "按键提示：")
-            this.instance.SetFont()
-            this.instance.AddText("x10", "切换状态：" _SettingsData.toggleKey "键")
-            this.instance.AddText(, "暂停脚本：" _SettingsData.pauseKey "键")
-            this.instance.AddText("w120 vStatusTextTip", "左键")
-            this.instance.AddText(, "拖动区域：中键")
-            this.instance.OnEvent("Close", (*) => ExitApp())
-            screenW := A_ScreenWidth
-            screenH := A_ScreenHeight
-            guiW := 130
-            guiH := 320
-            this.instance.Show("x" screenW - guiW " y" Round(screenH / 2 - guiH) " w" guiW "h" guiH)
-        }
-        this.instance.Show()
-        this.instance["StatusText"].Text := this.statusMap[this.status] "中"
-        this.instance["StatusTextTip"].Text := this.statusMap[this.status] "：左键"
-    }
-    static ToggleActive() {
-        this.status := !this.status
-        this.Show()
-    }
     static Close() {
-        if this.instance {
-            this.instance.Destroy()
-            this.instance := false
-        }
+        Suspend(false)
+        try this.instance.Destroy()
+        this.instance := false
+    }
+    static SaveAndReload() {
+        _SettingsData.openWplaceOnStart := this.instance["OpenWplace"].Value
+        _SettingsData.openThisPageOnStart := this.instance["OpenThisPage"].Value
+        _SettingsData.customUrl := this.instance["CustomUrl"].Text
+        _SettingsData.openCustomOnStart := this.instance["OpenCustom"].Value
+        if this.instance["PauseKey"].Value
+            _SettingsData.pauseKey := this.instance["PauseKey"].Value
+        if this.instance["FillKey"].Value
+            _SettingsData.fillKey := this.instance["FillKey"].Value
+        if this.instance["PickKey"].Value
+            _SettingsData.pickKey := this.instance["PickKey"].Value
+        WplaceConfig.save()
+        Reload()
     }
 }
 class AudioSound {
@@ -187,91 +135,95 @@ class AudioSound {
         "click-up", A_ScriptDir "\sounds\click-up.wav",
         "click", A_ScriptDir "\sounds\click.wav"
     )
-    static Play(name) {
-        file := AudioSound.soundMap[name]
-        ToolTip "尝试播放文件: " file
-        if FileExist(file) {
-            if !SoundPlay(file, "Wait") {
-                ToolTip "音效播放失败: " name
-            }
+    static Play(name) => SoundPlay(this.soundMap[name])
+}
+class ActionLogic {
+    static DoLBtn() {
+        if !this.IsWplaceWindow() {
+            this.Normal("LButton")
+            return
+        }
+        MouseGetPos(, , &winId)
+        if winId && WinGetID("A") != winId
+            WinActivate("ahk_id " winId)
+        this.ByKey()
+    }
+    static DoMBtn() {
+        MouseGetPos(&startX, &startY)
+        if !this.IsWplaceWindow() {
+            this.Normal("MButton")
+            return
+        }
+        this.Drag(startX, startY)
+    }
+    static IsWplaceWindow() {
+        MouseGetPos(, , &winId)
+        if (winId)
+            title := WinGetTitle(winId)
+        return InStr(title, "Wplace - Paint the world")
+    }
+    static Normal(key) {
+        SendEvent("{" key " down}")
+        KeyWait(key)
+        SendEvent("{" key " up}")
+    }
+    static ByKey() {
+        if GetKeyState(_SettingsData.fillKey, "P")
+            this.Fill()
+        else if GetKeyState(_SettingsData.pickKey, "P")
+            this.Pick()
+        else this.Normal("LButton")
+    }
+    static Fill() {
+        SendEvent("{Space down}")
+        KeyWait("LButton")
+        SendEvent("{Space up}")
+    }
+    static lastPickColor := ""
+    static Pick() {
+        MouseGetPos &mouseX, &mouseY
+        pixelColor := PixelGetColor(mouseX, mouseY, "RGB")
+        if pixelColor = 0xb1c3eb || pixelColor = 0xc4d6fe || pixelColor = 0x5f7199 ||
+            pixelColor = 0xfaf7f5 || pixelColor = 0x959290 || pixelColor = 0xe7e4e2
+            return
+        if this.lastPickColor != "" && pixelColor = this.lastPickColor {
+            SendEvent("{Space}")
         } else {
-            ToolTip "音效文件不存在: " name
+            Send("i")
+            SendEvent("{LButton}")
+            Sleep(100)
+            MouseMove mouseX, mouseY, 0
+            SendEvent("{Space}")
+            this.lastPickColor := pixelColor
+        }
+    }
+    static Drag(startX, startY) {
+        isDragging := false
+        dragThreshold := 3
+        while GetKeyState("MButton", "P") {
+            MouseGetPos(&currentX, &currentY)
+            if !isDragging && (Abs(currentX - startX) > dragThreshold || Abs(currentY - startY) > dragThreshold) {
+                isDragging := true
+                SendEvent("{LButton Down}")
+            }
+            Sleep(10)
+        }
+        if isDragging {
+            SendEvent("{LButton Up}")
         }
     }
 }
 global _SettingsData := SettingsData()
 WplaceConfig.load()
-SetHotKey_PauseGuiShow(newKey) {
-    Hotkey(_SettingsData.pauseKey, "Off")
-    Hotkey(newKey, (*) => PauseGui.Show(), "I1 On")
-    _SettingsData.pauseKey := newKey
-}
-SetHotKey_StatusGuiToggleActive(newKey) {
-    Hotkey(_SettingsData.toggleKey, "Off")
-    Hotkey(newKey, (*) => StatusGui.ToggleActive(), "I2 On")
-    _SettingsData.toggleKey := newKey
-}
-NormalLButtonLogic(key, winId) {
-    title := ""
-    if (winId)
-        title := WinGetTitle(winId)
-    if GetKeyState("Alt", "P") || !InStr(title, "Wplace - Paint the world") {
-        SendEvent("{" key " down}")
-        KeyWait(key)
-        SendEvent("{" key " up}")
-        return true
-    }
-    return false
-}
-$LButton:: {
-    MouseGetPos(, , &winId)
-    if NormalLButtonLogic("LButton", winId)
-        return
-    WinActivate("ahk_id " winId)
-    switch StatusGui.status {
-        case StatusType.Fill:
-            SendEvent("{Space down}")
-            KeyWait("LButton")
-            SendEvent("{Space up}")
-        case StatusType.Pick:
-            MouseGetPos &mouseX, &mouseY
-            pixelColor := PixelGetColor(mouseX, mouseY, "RGB")
-            if pixelColor = 0xb1c3eb || pixelColor = 0xc4d6fe || pixelColor = 0x5f7199 ||
-                pixelColor = 0xfaf7f5 || pixelColor = 0x959290 || pixelColor = 0xe7e4e2
-                return
-            Send("i")
-            SendEvent("{LButton}")
-            Sleep(100)
-            SendEvent("{Space}")
-        default: return
-    }
-}
-$MButton::
-{
-    MouseGetPos(&startX, &startY, &winId)
-    if NormalLButtonLogic("MButton", winId)
-        return
-    isDragging := false
-    dragThreshold := 3
-    while GetKeyState("MButton", "P") {
-        MouseGetPos(&currentX, &currentY)
-        if !isDragging && (Abs(currentX - startX) > dragThreshold || Abs(currentY - startY) > dragThreshold) {
-            isDragging := true
-            SendEvent("{LButton Down}")
-        }
-        Sleep(10)
-    }
-    if isDragging {
-        SendEvent("{LButton Up}")
-    }
-}
-Hotkey(_SettingsData.pauseKey, (*) => PauseGui.Show(), "I1")
-Hotkey(_SettingsData.toggleKey, (*) => StatusGui.ToggleActive(), "I2")
 A_TrayMenu.Delete()
 A_TrayMenu.Add("⚙️ 暂停/设置", (*) => PauseGui.Show())
 A_TrayMenu.Add("❌ 退出", (*) => ExitApp())
+Hotkey(_SettingsData.pauseKey, (*) => PauseGui.Show(), "I1")
+Hotkey("LButton", (*) => ActionLogic.DoLBtn())
+Hotkey("MButton", (*) => ActionLogic.DoMBtn())
+if _SettingsData.openWplaceOnStart
+    Run(_SettingsData.wplaceWeb)
+if _SettingsData.openCustomOnStart && _SettingsData.customUrl != ""
+    Run(_SettingsData.customUrl)
 if _SettingsData.openThisPageOnStart
     PauseGui.Show()
-else
-    StatusGui.Show()
-PauseGui.StartupActions()
