@@ -137,6 +137,36 @@ class AudioSound {
     )
     static Play(name) => SoundPlay(this.soundMap[name])
 }
+class ColorTools {
+    static GetComplementrayColor(originalHex) {
+        complementaryHex := "FFFFFF"
+        if (this.IsColor(originalHex)) {
+            originalInt := Integer("0x" SubStr(originalHex, 2))
+            origR := (originalInt >> 16) & 0xFF
+            origG := (originalInt >> 8) & 0xFF
+            origB := originalInt & 0xFF
+            compR := 255 - origR
+            compG := 255 - origG
+            compB := 255 - origB
+            complementaryInt := (compR << 16) | (compG << 8) | compB
+            complementaryHex := Format("{:06X}", complementaryInt)
+        }
+        return complementaryHex
+    }
+    static IsColor(color) => RegExMatch(color, "^[0-9A-Fa-f]{6}$")
+    static IsColorSimilar(color1, color2, tolerance := 8) {
+        r1 := (color1 >> 16) & 0xFF, g1 := (color1 >> 8) & 0xFF, b1 := color1 & 0xFF
+        r2 := (color2 >> 16) & 0xFF, g2 := (color2 >> 8) & 0xFF, b2 := color2 & 0xFF
+        return Abs(r1 - r2) <= tolerance && Abs(g1 - g2) <= tolerance && Abs(b1 - b2) <= tolerance
+    }
+    static IsSimilarToAny(color, arr, tolerance := 8) {
+        for k, v in arr {
+            if this.IsColorSimilar(color, v, tolerance)
+                return true
+        }
+        return false
+    }
+}
 class ActionLogic {
     static DoLBtn() {
         if !this.IsWplaceWindow() {
@@ -183,12 +213,11 @@ class ActionLogic {
     static Pick() {
         MouseGetPos &mouseX, &mouseY
         pixelColor := PixelGetColor(mouseX, mouseY, "RGB")
-        if pixelColor = 0xb1c3eb || pixelColor = 0xc4d6fe || pixelColor = 0x5f7199 ||
-            pixelColor = 0xfaf7f5 || pixelColor = 0x959290 || pixelColor = 0xe7e4e2
+        if ColorTools.IsSimilarToAny(pixelColor, [0xb1c3eb, 0xc4d6fe, 0x5f7199, 0xfaf7f5, 0x959290, 0xe7e4e2], 2)
             return
-        if this.lastPickColor != "" && pixelColor = this.lastPickColor {
+        if this.lastPickColor = pixelColor
             SendEvent("{Space}")
-        } else {
+        else {
             Send("i")
             SendEvent("{LButton}")
             Sleep(100)
