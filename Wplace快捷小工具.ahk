@@ -146,6 +146,8 @@ class SettingGui {
                 body: "norm s" FontTools.ScaleFontSize(11)
             }
             transforms := {
+                h1: "x30 y10 h20",
+                h1_yp: "yp h20",
                 h2_first: "x30 y70 h20",
                 h2: "x30 y+5 h20",
                 h3: "x40 y+5 h16",
@@ -155,10 +157,10 @@ class SettingGui {
             }
             settingsMap := this.GetSettingsMap()
             this.instance.SetFont(fonts.h2)
-            this.instance.AddText("x30", "作者：洛迪")
+            this.instance.AddText(transforms.h1, "作者：洛迪")
             this.instance.SetFont(fonts.body)
-            this.instance.AddLink("yp", ' | <a href="https://space.bilibili.com/418324770">b站主页</a>')
-            this.instance.AddLink("yp", ' | <a href="https://afdian.com/a/luodi">爱发电主页</a>')
+            this.instance.AddLink(transforms.h1_yp, ' | <a href="https://space.bilibili.com/418324770">b站主页</a>')
+            this.instance.AddLink(transforms.h1_yp, ' | <a href="https://afdian.com/a/luodi">爱发电主页</a>')
             tab := this.instance.AddTab3("x18 y29 w480 h560", ["介绍", "设置", "赞助"])
             tab.UseTab("介绍")
             this.AddIntroContent(tab, fonts, transforms)
@@ -956,7 +958,7 @@ RegisterModeHotkeys(modeObj, stateEnum, actionFunc, actionPickFunc := unset) {
             HotIfWinActive TitleWindowUsed
             Hotkey(modeObj.key, (*) => SwitchState_KeyDown(stateEnum))
             HotIf (*) => IsWplaceWindow() && _state = stateEnum
-            Hotkey("*" trigger, (*) => actionFunc)
+            Hotkey("*" trigger, (*) => actionFunc())
             if IsSet(actionPickFunc)
                 Hotkey("+" trigger, (*) => actionPickFunc())
         case KeyMode.directly:
