@@ -7,6 +7,8 @@
 #Include StatusGui.ahk
 #Include AudioSound.ahk
 #Include ActionLogic.ahk
+#Include MouseController.ahk
+
 #Include <HotkeyTools>
 
 ; -------------------------加载数据-----------------------------
@@ -24,7 +26,7 @@ try A_TrayMenu.Rename("&Suspend Hotkeys", "暂停(&P)")
 try A_TrayMenu.Rename("E&xit", "退出(&X)")
 
 ; -------------------------热键触发条件方法-----------------------------
-TitleWindowUsed := "Wplace - Paint the world"
+TitleWindowUsed := "Wplace - "
 IsWplaceWindow() {
     MouseGetPos , , &winId
     if (winId) {
@@ -97,11 +99,11 @@ RegisterModeHotkeys(modeObj, stateEnum, actionFunc, actionPickFunc := unset) {
             HotIf (*) => IsWplaceWindow()
 
             ; 按下时直接执行
-            Hotkey("*" modeObj.key, (*) {
+            Hotkey(modeObj.key, (*) {
                 StatusGui.ChangeState(stateEnum)
                 actionFunc(modeObj.key)
             })
-            Hotkey("*" modeObj.key " up", (*) => StatusGui.ChangeState(_state))
+            Hotkey(modeObj.key " up", (*) => StatusGui.ChangeState(_state))
 
             if IsSet(actionPickFunc) {
                 Hotkey("+" modeObj.key, (*) {
@@ -148,7 +150,7 @@ RegisterFillOnHoverPickOnClick() {
                             return false
                         }
                         return _state = State.FillOnHoverPickOnClick
-                    }),-1
+                    }), -1
             })
             HotIf (*) => IsWplaceWindow() && _state = State.FillOnHoverPickOnClick
             Hotkey("*" trigger, (*) => ActionLogic.PickAndDraw(trigger, false))
@@ -181,20 +183,31 @@ RegisterModeHotkeys(_SettingsData.DrawHorizontalKey, State.DrawHorizontal,
 RegisterFillOnHoverPickOnClick()
 
 ; ============================== 其余固定热键 ===============================
+
 HotIf (*) => WinActive(TitleWindowUsed)
-Hotkey("*w", (*) => "")
-Hotkey("*a", (*) => "")
-Hotkey("*s", (*) => "")
-Hotkey("*d", (*) => "")
+Hotkey("*w", (*) => MouseController.Start())
+Hotkey("*a", (*) => MouseController.Start())
+Hotkey("*s", (*) => MouseController.Start())
+Hotkey("*d", (*) => MouseController.Start())
 
 HotIf (*) => IsWplaceWindow()
 Hotkey("MButton", (*) => ActionLogic.Drag("MButton"))
 
 ; -------------------------初次启动时执行-----------------------------
 if _SettingsData.openWplaceOnStart
-    Run(_SettingsData.wplaceWeb)
-if _SettingsData.openCustomOnStart && _SettingsData.customUrl != ""
-    Run(_SettingsData.customUrl)
+    ; 检查是否已经有Wplace窗口打开
+    if (!WinExist(TitleWindowUsed)) {
+        Run(_SettingsData.wplaceWeb)
+    }
+if _SettingsData.openCustomOnStart && _SettingsData.customUrl != "" {
+    ; 检查自定义程序是否已经打开
+    customUrl := _SettingsData.customUrl
+
+    ; 检查程序是否已经运行（使用SplitPath获取文件名）
+    SplitPath customUrl, &fileName
+    if (!ProcessExist(fileName))
+        Run(customUrl)
+}
 
 if _SettingsData.openThisPageOnStart
     SettingGui.Show()

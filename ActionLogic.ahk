@@ -47,38 +47,16 @@ class ActionLogic {
             this.DrawLastColor((*) => GetKeyState(key, "P"))
         Sleep(1) ;防止松开后立刻再次触发
     }
-    /**
-     * @param ShouldContinue function():boolean 返回布尔值的回调函数，true继续循环，false退出循环
-     */
+    /**@param ShouldContinue function():boolean 返回布尔值的回调函数，true继续循环，false退出循环*/
     static DrawLastColor(ShouldContinue) {
         canDraw := false
         static lastX := -1, lastY := -1
 
         while ShouldContinue() {
             MouseGetPos &mx, &my
-
-            ; === WASD 控制移动===
-            dx := 0, dy := 0
-            step := _SettingsData.moveStep
-            if GetKeyState("w", "P")
-                dy -= step
-            if GetKeyState("s", "P")
-                dy += step
-            if GetKeyState("a", "P")
-                dx -= step
-            if GetKeyState("d", "P")
-                dx += step
-            if (dx || dy) {
-                if GetKeyState("Shift", "P")
-                    dx *= 2, dy *= 2
-                else if GetKeyState("Control", "P")
-                    dx /= 2, dy /= 2
-                MouseMove mx + dx, my + dy, 0
-                mx += dx, my += dy
-            }
+            
             ; === 鼠标未移动：跳过所有操作 ===
             if (mx = lastX && my = lastY) {
-                ; Sleep 1
                 continue
             }
 
@@ -153,6 +131,7 @@ class ActionLogic {
             BlockInput "MouseMoveOff"
             return
         }
+
         isH := (direction = "H")
         colors := ColorTools.GetLineColors(wx, wy, ww, wh, mx, my, direction)
         idx := isH ? (mx - wx) : (my - wy)
@@ -198,10 +177,50 @@ class ActionLogic {
             Sleep _SettingsData.drawDelay
         }
         AudioSound.PlayAudioAsync("Draw")
-        MouseMove mx, my, 0
+        
+        static lastPos := false  ; 记录第一次点击的位置
+        static resetLastPosAction := () {
+            if (GetKeyState("LButton")) {
+                ; 重置firstPos并退出定时器
+                lastPos := false
+                SetTimer(resetLastPosAction, 0)  ; 停止当前定时器
+            }
+        }
+        ; 计算两次点击间隔并在第二次点击后移动到下一个位置
+        if (lastPos) {
+            ; 计算从第一次点击到当前点击的向量
+            deltaX := mx - lastPos[1]
+            deltaY := my - lastPos[2]
+            
+            ; 计算下次点击应该去的位置（当前位置 + 向量）
+            ; 根据isH决定只在哪个轴上移动
+            if (isH) {
+                ; 水平方向，只移动Y轴
+                nextX := mx
+                nextY := my + deltaY
+            } else {
+                ; 垂直方向，只移动X轴
+                nextX := mx + deltaX
+                nextY := my
+            }
+            
+            ; 移动到计算出的位置
+            MouseMove nextX, nextY, 0
+        }
+        else
+            MouseMove mx, my, 0
+    
+        ; 每次点击都记录firstPos
+        lastPos := [mx, my]
+        ; 停止之前的定时器
+        SetTimer(resetLastPosAction, 0)
+        ; 启动新的检测定时器
+        SetTimer(resetLastPosAction, 100)
+    
+        
         BlockInput "MouseMoveOff"
     }
-
+    ; 拖动画布
     static Drag(key) {
         MouseGetPos(&startX, &startY)
         isDragging := false

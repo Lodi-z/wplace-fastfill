@@ -14,7 +14,7 @@ class StatusGui {
         this.instance := Gui("+AlwaysOnTop -Caption +ToolWindow +LastFound")
         margin := _SettingsData.StatusTip.strokeWidth
         size := _SettingsData.StatusTip.size
-        this.picControl := this.instance.AddPicture("x" margin " y" margin " w" size " h" size, "image/空.jpg")
+        this.picControl := this.instance.AddPicture("x" margin " y" margin " w" size " h" size, "image/status/空.jpg")
 
         guiSize := _SettingsData.StatusTip.size + _SettingsData.StatusTip.strokeWidth * 2
         this.dpiScale := A_ScreenDPI / 96
@@ -30,11 +30,11 @@ class StatusGui {
     }
 
     static ImageFiles := [
-        "image/织色如缕.jpg",
-        "image/摄色流转.jpg",
-        "image/绘彩巡游.jpg",
-        "image/纵穿千影.jpg",
-        "image/横扫苍茫.jpg"
+        "image/status/织色如缕.jpg",
+        "image/status/摄色流转.jpg",
+        "image/status/绘彩巡游.jpg",
+        "image/status/纵穿千影.jpg",
+        "image/status/横扫苍茫.jpg"
     ]
 
     static Show() {
@@ -65,7 +65,7 @@ class StatusGui {
                 return
             }
             ; 更新图片
-            this.picControl.Value := (state = 0) ? "image/空.jpg" : this.ImageFiles[state]
+            this.picControl.Value := (state = 0) ? "image/status/空.jpg" : this.ImageFiles[state]
         }
         this.Show
     }
