@@ -23,11 +23,21 @@ class SettingsData {
     fillKey := KeyData("z", KeyMode.heldDown)
     pickAndDrawKey := KeyData("x", KeyMode.heldDown)
     fillOnHoverPickOnClickKey := KeyData("c", KeyMode.toggle)
+    DrawVerticalKey := KeyData("v", KeyMode.toggle)
+    DrawHorizontalKey := KeyData("h", KeyMode.toggle)
     triggerKey := "LButton"
     moveStep := 2
-    pickDelay := 100
+    pickDelay := 200
+    drawDelay := 10
     playSnd := false
     playSndType := 1
+    StatusTip := {
+        horizontal: 3,
+        vertical: 1,
+        margin: 20,
+        size: 100,
+        strokeWidth: 5
+    }
 }
 class WplaceConfig {
     static file := "wplace_config.ini"
@@ -44,11 +54,21 @@ class WplaceConfig {
             this.TryRead(&_SettingsData.pickAndDrawKey.mode, "Hotkeys", "PickKeyMode")
             this.TryRead(&_SettingsData.fillOnHoverPickOnClickKey.key, "Hotkeys", "FillOnHoverPickOnClickKey")
             this.TryRead(&_SettingsData.fillOnHoverPickOnClickKey.mode, "Hotkeys", "FillOnHoverPickOnClickKeyMode")
+            this.TryRead(&_SettingsData.DrawVerticalKey.key, "Hotkeys", "DrawVerticalKey")
+            this.TryRead(&_SettingsData.DrawVerticalKey.mode, "Hotkeys", "DrawVerticalKeyMode")
+            this.TryRead(&_SettingsData.DrawHorizontalKey.key, "Hotkeys", "DrawHorizontalKey")
+            this.TryRead(&_SettingsData.DrawHorizontalKey.mode, "Hotkeys", "DrawHorizontalKeyMode")
             this.TryRead(&_SettingsData.triggerKey, "Hotkeys", "TriggerKey")
             this.TryRead(&_SettingsData.moveStep, "Other", "MoveStep")
             this.TryRead(&_SettingsData.pickDelay, "Delay", "PickDelay")
+            this.TryRead(&_SettingsData.drawDelay, "Delay", "DrawDelay")
             this.TryRead(&_SettingsData.playSnd, "Other", "PlaySnd")
             this.TryRead(&_SettingsData.playSndType, "Other", "PlaySndType")
+            this.TryRead(&_SettingsData.StatusTip.Horizontal, "Other", "StatusTip_Horizontal")
+            this.TryRead(&_SettingsData.StatusTip.Vertical, "Other", "StatusTip_Vertical")
+            this.TryRead(&_SettingsData.StatusTip.margin, "Other", "StatusTip_Margin")
+            this.TryRead(&_SettingsData.StatusTip.size, "Other", "StatusTip_Size")
+            this.TryRead(&_SettingsData.StatusTip.strokeWidth, "Other", "StatusTip_StrokeWidth")
         }
     }
     static TryRead(&data, Section, Key) {
@@ -70,11 +90,21 @@ class WplaceConfig {
         )
         IniWrite(_SettingsData.fillOnHoverPickOnClickKey.mode, WplaceConfig.file, "Hotkeys",
             "FillOnHoverPickOnClickKeyMode")
+        IniWrite(_SettingsData.DrawVerticalKey.key, WplaceConfig.file, "Hotkeys", "DrawVerticalKey")
+        IniWrite(_SettingsData.DrawVerticalKey.mode, WplaceConfig.file, "Hotkeys", "DrawVerticalKeyMode")
+        IniWrite(_SettingsData.DrawHorizontalKey.key, WplaceConfig.file, "Hotkeys", "DrawHorizontalKey")
+        IniWrite(_SettingsData.DrawHorizontalKey.mode, WplaceConfig.file, "Hotkeys", "DrawHorizontalKeyMode")
         IniWrite(_SettingsData.triggerKey, WplaceConfig.file, "Hotkeys", "TriggerKey")
         IniWrite(_SettingsData.moveStep, WplaceConfig.file, "Other", "MoveStep")
         IniWrite(_SettingsData.pickDelay, WplaceConfig.file, "Delay", "PickDelay")
+        IniWrite(_SettingsData.drawDelay, WplaceConfig.file, "Delay", "DrawDelay")
         IniWrite(_SettingsData.playSnd, WplaceConfig.file, "Other", "PlaySnd")
         IniWrite(_SettingsData.playSndType, WplaceConfig.file, "Other", "PlaySndType")
+        IniWrite(_SettingsData.StatusTip.Horizontal, WplaceConfig.file, "Other", "StatusTip_Horizontal")
+        IniWrite(_SettingsData.StatusTip.Vertical, WplaceConfig.file, "Other", "StatusTip_Vertical")
+        IniWrite(_SettingsData.StatusTip.margin, WplaceConfig.file, "Other", "StatusTip_Margin")
+        IniWrite(_SettingsData.StatusTip.size, WplaceConfig.file, "Other", "StatusTip_Size")
+        IniWrite(_SettingsData.StatusTip.strokeWidth, WplaceConfig.file, "Other", "StatusTip_StrokeWidth")
     }
 }
 #Requires AutoHotkey v2.0
@@ -129,133 +159,212 @@ class SettingGui {
     static Show() {
         if !this.instance {
             this.instance := Gui()
-            h1_font := "s" FontTools.ScaleFontSize(14) " bold"
-            h2_font := "s" FontTools.ScaleFontSize(12) " bold"
-            h3_font := "s" FontTools.ScaleFontSize(11) " bold"
-            body_font := "norm s" FontTools.ScaleFontSize(11)
-            h2_first_transform := "x30 y60"
-            h2_transform := "x30 y+10"
-            h3_transform := "x40 y+10"
-            body_transform := "x50 y+4"
             this.instance.Title := "Wplace工具 - 菜单                  Ciallo～(∠・ω< )⌒★"
-            this.instance.SetFont(h2_font)
-            this.instance.AddText("x30", "作者：洛迪 |")
-            this.instance.SetFont(body_font)
-            this.instance.AddLink("x+10",
-                'b站主页：<a href="https://space.bilibili.com/418324770">space.bilibili.com/418324770</a>')
-            tab := this.instance.AddTab3("x18 y+10 w480 h480", ["介绍", "设置", "赞助"])
+            fonts := Map(
+                "h2", "s" FontTools.ScaleFontSize(12) " bold",
+                "h3", "s" FontTools.ScaleFontSize(11) " bold",
+                "body", "norm s" FontTools.ScaleFontSize(11)
+            )
+            positions := Map(
+                "h2_first", "x30 y60",
+                "h2", "x30 y+5",
+                "h3", "x40 y+5",
+                "body", "x50 y+3"
+            )
+            this.instance.SetFont(fonts["h2"])
+            this.instance.AddText("x30", "作者：洛迪")
+            this.instance.SetFont(fonts["body"])
+            this.instance.AddLink("yp", ' | <a href="https://space.bilibili.com/418324770">b站主页</a>')
+            this.instance.AddLink("yp", ' | <a href="https://afdian.com/a/luodi">爱发电主页</a>')
+            tab := this.instance.AddTab3("x18 y+10 w480 h520", ["介绍", "设置", "赞助"])
             tab.UseTab("介绍")
-            GetDescribeByKeyMode(keyData) {
-                describe_map := Map(
-                    KeyMode.heldDown, "按住 {} 期间进入此模式",
-                    KeyMode.toggle, "按下 {} 进入此模式，再次按下时退出",
-                    KeyMode.directly, "直接使用 {} 执行功能"
-                )
-                return Format(describe_map[Integer(keyData.mode)], StringTools.HotkeyToString(keyData.key))
-            }
-            GetKeyName(keyData) {
-                if keyData.mode = KeyMode.directly
-                    return StringTools.HotkeyToString(keyData.key)
-                return StringTools.HotkeyToString(_SettingsData.triggerKey)
-            }
-            this.instance.SetFont(h2_font)
-            this.instance.AddText(h2_first_transform, "功能说明：")
-            this.instance.SetFont(body_font)
-            this.instance.SetFont(h3_font)
-            this.instance.AddText(h3_transform, "1. 织色如缕")
-            this.instance.SetFont(body_font)
-            this.instance.AddText(body_transform, GetDescribeByKeyMode(_SettingsData.fillKey))
-            this.instance.AddText(body_transform, Format("• 长按{}：对鼠标移动途中连续填充当前颜色", GetKeyName(_SettingsData.fillKey)))
-            this.instance.SetFont(h3_font)
-            this.instance.AddText(h3_transform, "2. 摄色流转")
-            this.instance.SetFont(body_font)
-            this.instance.AddText(body_transform, GetDescribeByKeyMode(_SettingsData.pickAndDrawKey))
-            this.instance.AddText(body_transform, Format("• 点击{}：取色当前颜色后立即填入", GetKeyName(_SettingsData.pickAndDrawKey)))
-            this.instance.AddText(body_transform, "• 继续长按：滑动到相同颜色时自动填充")
-            this.instance.AddText(body_transform, "• 途中再长按WASD：可控制鼠标移动，使用Shift加速，Ctrl减速")
-            this.instance.AddText(body_transform, "• 点击到地图背景色时不执行，防止误触")
-            this.instance.AddText(body_transform, "• 点击到上次取色颜色时直接填入")
-            this.instance.SetFont(h3_font)
-            this.instance.AddText(h3_transform, "3. 绘彩巡游")
-            this.instance.SetFont(body_font)
-            this.instance.AddText(body_transform, GetDescribeByKeyMode(_SettingsData.fillOnHoverPickOnClickKey))
-            this.instance.AddText(body_transform, "• 始终执行：鼠标滑动到相同颜色时自动填充")
-            this.instance.AddText(body_transform, Format("• 点击{}：取色当前颜色后立即填入", StringTools.HotkeyToString(_SettingsData
-                .triggerKey)))
-            this.instance.AddText(body_transform, "• 长按WASD：可控制鼠标移动，使用Shift加速，Ctrl减速")
-            this.instance.SetFont(h3_font)
-            this.instance.AddText(h3_transform, "便捷操作")
-            this.instance.SetFont(body_font)
-            this.instance.AddText(body_transform, "• 鼠标中键：拖动画布（地图）")
-            this.instance.AddText(body_transform, "• 右键擦除颜色，上下左右移动画布（网站原有功能，只是提醒一下）")
-            this.instance.SetFont(h2_font)
-            this.instance.AddText(h2_transform, "注意事项：")
-            this.instance.SetFont(body_font)
-            this.instance.AddText(body_transform, "键位可替换，如需替换，请移步设置选项卡")
-            this.instance.AddText(body_transform, "如果【取色后立即填入该颜色】功能无法触发，请调高取色延迟！")
+            this.AddIntroContent(tab, fonts, positions)
             tab.UseTab("设置")
-            body_transform := body_transform " h20"
-            body_transform_yp := "h20 yp"
-            this.instance.SetFont(h2_font)
-            this.instance.AddText(h2_first_transform, "启动设置")
-            this.instance.SetFont(body_font)
-            this.instance.AddCheckbox(body_transform " vOpenThisPage", "启动时自动打开本页面").Value := _SettingsData.openThisPageOnStart
-            this.instance.AddCheckbox(body_transform " vOpenWplace", "启动时自动打开Wplace网站").Value := _SettingsData.openWplaceOnStart
-            this.instance.AddLink(body_transform_yp, '<a href="' _SettingsData.wplaceWeb '">' _SettingsData.wplaceWeb '</a>'
-            )
-            this.instance.AddCheckbox(body_transform " h25 vOpenCustom", "启动时自动打开自定义程序").Value := _SettingsData.openCustomOnStart
-            this.instance.AddEdit(body_transform_yp " vCustomUrl w160", _SettingsData.customUrl)
-            labelWidth := " w120"
-            EditWidth := " w110"
-            DropDownWidth := " w125"
-            KeyModeOptions := ["按住时使用模式", "按下后切换模式", "直接使用"]
-            KeyModeOptions2 := ["按住时使用模式", "按下后切换模式"]
-            this.instance.SetFont(h2_font)
-            this.instance.AddText(h2_transform, "键位设置（为空时表示不使用该功能）")
-            this.instance.SetFont(body_font)
-            this.instance.AddText(body_transform labelWidth, "打开菜单：")
-            this.instance.AddHotkey(body_transform_yp EditWidth " vPauseKey", _SettingsData.menuKey)
-            this.instance.AddText(body_transform labelWidth, "织色如缕：")
-            this.instance.AddHotkey(body_transform_yp EditWidth " vFillKey", _SettingsData.fillKey.key)
-            this.instance.AddDropDownList(body_transform_yp DropDownWidth " R3 vFillKeyMode", KeyModeOptions).Value :=
-            _SettingsData.fillKey.mode
-            this.instance.AddText(body_transform labelWidth, "摄色流转：")
-            this.instance.AddHotkey(body_transform_yp EditWidth " vPickKey", _SettingsData.pickAndDrawKey.key)
-            this.instance.AddDropDownList(body_transform_yp DropDownWidth " R3 vPickKeyMode", KeyModeOptions).Value :=
-            _SettingsData.pickAndDrawKey.mode
-            this.instance.AddText(body_transform labelWidth, "绘彩巡游：")
-            this.instance.AddHotkey(body_transform_yp EditWidth " vFhpcHk", _SettingsData.fillOnHoverPickOnClickKey.key
-            )
-            this.instance.AddDropDownList(body_transform_yp DropDownWidth " R2 vFhpcHkMode", KeyModeOptions2).Value :=
-            _SettingsData.fillOnHoverPickOnClickKey.mode
-            this.instance.AddText(body_transform labelWidth, "触发：")
-            this.instance.AddDropDownList(body_transform_yp EditWidth " R2 vTriggerKey", ["左键", "空格"]).Value := Map(
-                "LButton", 1, "Space", 2)[_SettingsData.triggerKey]
-            this.instance.SetFont(h2_font)
-            this.instance.AddText(h2_transform, "其他设置")
-            this.instance.SetFont(body_font)
-            this.instance.AddText(body_transform labelWidth, "鼠标移动速度：")
-            this.instance.AddEdit(body_transform_yp EditWidth " vMoveStep Number", _SettingsData.moveStep)
-            this.instance.AddText("yp h25", "像素/Tick")
-            this.instance.AddText(body_transform labelWidth, "取色后延迟：")
-            this.instance.AddEdit(body_transform_yp EditWidth " vPickDelay Number", _SettingsData.pickDelay)
-            this.instance.AddText("yp h25", "ms填入")
-            this.instance.AddCheckbox(body_transform " vPlaySnd", "涂色时播放音效（会让程序有一点延迟）").Value := _SettingsData.playSnd
-            this.instance.AddDropDownList(body_transform_yp DropDownWidth " R2 vPlaySndType", ["曼波~", "Ciallo~"]).Value :=
-            _SettingsData.playSndType
-            this.instance.AddButton("x30 y470" " w455", "保存设置并重启该脚本").OnEvent("Click", (*) => this.SaveAndReload())
+            this.AddSettingsContent(tab, fonts, positions)
             tab.UseTab("赞助")
-            this.instance.SetFont(h2_font)
-            this.instance.AddText(h2_first_transform, "要赞助我一杯咖啡吗？～(∠・ω< )⌒★")
-            this.instance.SetFont(body_font)
-            this.instance.AddPicture("x18 y+0 w476 h357", "image/QR_code.png")
+            this.instance.AddPicture("x18 y50 w476 h520", "image/QR_code.jpg")
             tab.UseTab()
-            this.instance.AddButton("x18 w234", "退出程序").OnEvent("Click", (*) => ExitApp())
-            this.instance.AddButton("yp w234", "确定").OnEvent("Click", (*) => this.OnStartClick())
-            this.instance.OnEvent("Close", (*) => this.OnStartClick())
-            this.instance.Show("w514 ")
+            this.AddBottomButtons()
+            this.instance.Show("w514")
             IME.SetEnglish()
         }
+    }
+    static AddIntroContent(tab, fonts, positions) {
+        GetDescribeByKeyMode(keyData) {
+            describe_map := Map(
+                KeyMode.heldDown, "按住 {} 期间进入此模式",
+                KeyMode.toggle, "按下 {} 进入此模式，再次按下时退出",
+                KeyMode.directly, "直接使用 {} 执行功能"
+            )
+            return Format(describe_map[Integer(keyData.mode)], StringTools.HotkeyToString(keyData.key))
+        }
+        GetKeyName(keyData) {
+            return keyData.mode = KeyMode.directly ? StringTools.HotkeyToString(keyData.key) : StringTools.HotkeyToString(
+                _SettingsData.triggerKey)
+        }
+        this.instance.SetFont(fonts["h2"])
+        this.instance.AddText(positions["h2_first"], "功能说明：")
+        this.instance.SetFont(fonts["body"])
+        functions :=
+            [{
+                name: "织色如缕", color: "0071d4",
+                desc: [
+                    GetDescribeByKeyMode(_SettingsData.fillKey),
+                    Format("• 长按{}：对鼠标移动途中连续填充当前颜色", GetKeyName(_SettingsData.fillKey))]
+            }, {
+                name: "摄色流转", color: "0c8d00",
+                desc: [
+                    GetDescribeByKeyMode(_SettingsData.pickAndDrawKey),
+                    Format("• 点击{}：取色当前颜色后立即填入", GetKeyName(_SettingsData.pickAndDrawKey)),
+                    "• 继续长按：滑动到相同颜色时自动填充"]
+            }, {
+                name: "绘彩巡游", color: "bc0000",
+                desc: [
+                    GetDescribeByKeyMode(_SettingsData.fillOnHoverPickOnClickKey),
+                    "• 始终执行：鼠标滑动到相同颜色时自动填充",
+                    Format("• 点击{}：取色当前颜色后立即填入", StringTools.HotkeyToString(_SettingsData.triggerKey)),
+                    "• 长按WASD：可控制鼠标移动，使用Shift加速，Ctrl减速"]
+            }, {
+                name: "纵穿千影", color: "6f00d7",
+                desc: [
+                    GetDescribeByKeyMode(_SettingsData.DrawVerticalKey),
+                    Format("• 按住shift时点击{}：取色当前颜色后立即填充整列相同颜色", StringTools.HotkeyToString(_SettingsData.triggerKey)),
+                    Format("• 点击{}：立即填充整列上次取色的相同颜色", StringTools.HotkeyToString(_SettingsData.triggerKey))]
+            }, {
+                name: "横扫苍茫", color: "c8a700",
+                desc: [
+                    GetDescribeByKeyMode(_SettingsData.DrawHorizontalKey),
+                    Format("• 按住shift时点击{}：取色当前颜色后立即填充整行相同颜色", StringTools.HotkeyToString(_SettingsData.triggerKey)),
+                    Format("• 点击{}：立即填充整行上次取色的相同颜色", StringTools.HotkeyToString(_SettingsData.triggerKey))]
+            }]
+        for func in functions {
+            this.instance.SetFont(fonts["h3"])
+            this.instance.AddText(positions["h3"], func.name).SetFont("c" func.color)
+            this.instance.SetFont(fonts["body"])
+            this.instance.AddPicture("yp w15 h15", StatusGui.ImageFiles[A_Index])
+            for desc in func.desc {
+                this.instance.AddText(positions["body"], desc)
+            }
+        }
+        this.instance.SetFont(fonts["h3"])
+        this.instance.AddText(positions["h3"], "其他功能")
+        this.instance.SetFont(fonts["body"])
+        this.instance.AddText(positions["body"], "• 鼠标中键拖动：移动画布（地图）")
+        this.instance.AddText(positions["body"], "• 右键擦除颜色，上下左右移动画布（网站原有功能）")
+        this.instance.SetFont(fonts["h2"])
+        this.instance.AddText(positions["h2"], "注意事项：")
+        this.instance.SetFont(fonts["body"])
+        this.instance.AddText(positions["body"], "如果无法启用，请检查是否启用了自动翻译，标题被翻译会无法使用")
+        this.instance.AddText(positions["body"], "如果【取色后立即填入该颜色】功能无法触发，请调高取色延迟！")
+    }
+    static AddSettingsContent(tab, fonts, positions) {
+        body_pos := positions["body"] " h20"
+        body_yp := "h20 yp"
+        labelWidth := " w120"
+        EditWidth := " w110"
+        DropDownWidth := " w125"
+        KeyModeOptions := ["按住时使用模式", "按下后切换模式", "直接触发"]
+        KeyModeOptions2 := ["按住时使用模式", "按下后切换模式"]
+        this.instance.SetFont(fonts["h2"])
+        this.instance.AddText(positions["h2_first"], "启动设置")
+        this.instance.SetFont(fonts["body"])
+        this.instance.AddCheckbox(body_pos " vOpenThisPage", "启动时自动打开本页面").Value := _SettingsData.openThisPageOnStart
+        this.instance.AddCheckbox(body_pos " vOpenWplace", "启动时自动打开Wplace网站").Value := _SettingsData.openWplaceOnStart
+        this.instance.AddLink(body_yp, '<a href="' _SettingsData.wplaceWeb '">' _SettingsData.wplaceWeb '</a>')
+        this.instance.AddCheckbox(body_pos " h25 vOpenCustom", "启动时自动打开自定义程序").Value := _SettingsData.openCustomOnStart
+        this.instance.AddEdit(body_yp " vCustomUrl w160", _SettingsData.customUrl)
+        this.instance.SetFont(fonts["h2"])
+        this.instance.AddText(positions["h2"], "键位设置（为空时表示不使用该功能）")
+        this.instance.SetFont(fonts["body"])
+        keys :=
+            [{
+                label: "打开菜单：",
+                hotkey: "PauseKey",
+                value: _SettingsData.menuKey
+            }, {
+                label: "织色如缕：",
+                hotkey: "FillKey",
+                value: _SettingsData.fillKey,
+                mode: "FillKeyMode",
+                options: KeyModeOptions
+            }, {
+                label: "摄色流转：",
+                hotkey: "PickKey",
+                value: _SettingsData.pickAndDrawKey,
+                mode: "PickKeyMode",
+                options: KeyModeOptions
+            }, {
+                label: "绘彩巡游：",
+                hotkey: "FhpcHk",
+                value: _SettingsData.fillOnHoverPickOnClickKey,
+                mode: "FhpcHkMode",
+                options: KeyModeOptions2
+            }, {
+                label: "纵穿千影：",
+                hotkey: "DrawVerticalKey",
+                value: _SettingsData.DrawVerticalKey,
+                mode: "DrawVerticalKeyMode",
+                options: KeyModeOptions
+            }, {
+                label: "横扫苍茫：",
+                hotkey: "DrawHorizontalKey",
+                value: _SettingsData.DrawHorizontalKey,
+                mode: "DrawHorizontalKeyMode",
+                options: KeyModeOptions
+            }]
+        for key in keys {
+            this.instance.AddText(body_pos labelWidth, key.label)
+            if key.HasProp("mode") {
+                this.instance.AddHotkey(body_yp EditWidth " v" key.hotkey, key.value.key)
+                this.instance.AddDropDownList(body_yp DropDownWidth " v" key.mode " R" key.options.Length, key.options)
+                .Value := key.value.mode
+            } else this.instance.AddHotkey(body_yp EditWidth " v" key.hotkey, key.value)
+        }
+        this.instance.AddText(body_pos labelWidth, "触发：")
+        this.instance.AddDropDownList(body_yp EditWidth " R2 vTriggerKey", ["左键", "空格"]).Value := Map("LButton", 1,
+            "Space", 2)[_SettingsData.triggerKey]
+        this.instance.SetFont(fonts["h2"])
+        this.instance.AddText(positions["h2"], "其他设置")
+        this.instance.SetFont(fonts["body"])
+        this.AddSettingRow(body_pos, body_yp, labelWidth, EditWidth, "鼠标移动速度：", "MoveStep", _SettingsData.moveStep,
+            "像素/Tick")
+        this.AddSettingRow(body_pos, body_yp, labelWidth, EditWidth, "取色后延迟：", "PickDelay", _SettingsData.pickDelay,
+            "ms填入")
+        this.AddSettingRow(body_pos, body_yp, labelWidth, EditWidth, "每次填充延迟：", "DrawDelay", _SettingsData.drawDelay,
+            "ms再次填入")
+        this.instance.AddCheckbox(body_pos labelWidth " vPlaySnd", "涂色时播放音效").Value := _SettingsData.playSnd
+        this.instance.AddDropDownList(body_yp DropDownWidth " R2 vPlaySndType", ["曼波~", "Ciallo~"]).Value :=
+        _SettingsData.playSndType
+        this.AddStatusTipSettings(body_pos, body_yp, labelWidth, EditWidth, DropDownWidth)
+        this.instance.AddButton("x30 y510 w455", "保存设置并重启该脚本").OnEvent("Click", (*) => this.SaveAndReload())
+    }
+    static AddSettingRow(body_pos, body_yp, labelWidth, EditWidth, label, varName, value, unit) {
+        this.instance.AddText(body_pos labelWidth, label)
+        this.instance.AddEdit(body_yp EditWidth " v" varName " Number", value)
+        this.instance.AddText(body_yp, unit)
+    }
+    static AddStatusTipSettings(body_pos, body_yp, labelWidth, EditWidth, DropDownWidth) {
+        this.instance.AddText(body_pos labelWidth, "状态提示框位置：")
+        this.instance.AddDropDownList(body_yp " w60 R3 vStatusTip_Horizontal", ["左侧", "中间", "右侧"]).Value :=
+        _SettingsData.StatusTip.Horizontal
+        this.instance.AddDropDownList(body_yp " w60 R3 vStatusTip_Vertical", ["顶部", "中间", "底部"]).Value := _SettingsData
+        .StatusTip.Vertical
+        this.instance.AddText(body_yp, "边距")
+        this.instance.AddEdit(body_yp " w40 vStatusTip_margin Number", _SettingsData.StatusTip.margin)
+        this.instance.AddText(body_yp, "像素")
+        this.instance.AddText(body_pos labelWidth, "状态提示框大小：")
+        this.instance.AddEdit(body_yp " w40 vStatusTip_size Number", _SettingsData.StatusTip.size)
+        this.instance.AddText(body_yp, "像素，")
+        this.instance.AddText(body_yp, "描边宽度：")
+        this.instance.AddEdit(body_yp " w40 vStatusTip_stroke_width Number", _SettingsData.StatusTip.strokeWidth)
+        this.instance.AddText(body_yp, "像素")
+    }
+    static AddBottomButtons() {
+        ButtonsWidth := " w154"
+        this.instance.AddButton("x18" ButtonsWidth, "退出程序").OnEvent("Click", (*) => ExitApp())
+        this.instance.AddButton("yp" ButtonsWidth, "打开Wplace").OnEvent("Click", (*) => Run(_SettingsData.wplaceWeb))
+        this.instance.AddButton("yp" ButtonsWidth, "确定").OnEvent("Click", (*) => this.OnStartClick())
+        this.instance.OnEvent("Close", (*) => this.OnStartClick())
     }
     static Close() {
         try this.instance.Destroy()
@@ -278,11 +387,21 @@ class SettingGui {
         _SettingsData.pickAndDrawKey.mode := this.instance["PickKeyMode"].Value
         _SettingsData.fillOnHoverPickOnClickKey.key := this.instance["FhpcHk"].Value
         _SettingsData.fillOnHoverPickOnClickKey.mode := this.instance["FhpcHkMode"].Value
+        _SettingsData.DrawVerticalKey.key := this.instance["DrawVerticalKey"].Value
+        _SettingsData.DrawVerticalKey.mode := this.instance["DrawVerticalKeyMode"].Value
+        _SettingsData.DrawHorizontalKey.key := this.instance["DrawHorizontalKey"].Value
+        _SettingsData.DrawHorizontalKey.mode := this.instance["DrawHorizontalKeyMode"].Value
         _SettingsData.triggerKey := ["LButton", "Space"][this.instance["TriggerKey"].Value]
         _SettingsData.moveStep := Integer(this.instance["MoveStep"].Value)
         _SettingsData.pickDelay := Integer(this.instance["PickDelay"].Value)
+        _SettingsData.drawDelay := Integer(this.instance["DrawDelay"].Value)
         _SettingsData.playSnd := this.instance["PlaySnd"].Value
         _SettingsData.playSndType := this.instance["PlaySndType"].Value
+        _SettingsData.StatusTip.Horizontal := this.instance["StatusTip_Horizontal"].Value
+        _SettingsData.StatusTip.Vertical := this.instance["StatusTip_Vertical"].Value
+        _SettingsData.StatusTip.margin := this.instance["StatusTip_margin"].Value
+        _SettingsData.StatusTip.size := this.instance["StatusTip_size"].Value
+        _SettingsData.StatusTip.strokeWidth := this.instance["StatusTip_stroke_width"].Value
         WplaceConfig.save()
         Reload()
     }
@@ -299,11 +418,21 @@ class SettingGui {
             _SettingsData.pickAndDrawKey.mode != this.instance["PickKeyMode"].Value ||
             _SettingsData.fillOnHoverPickOnClickKey.key != this.instance["FhpcHk"].Value ||
             _SettingsData.fillOnHoverPickOnClickKey.mode != this.instance["FhpcHkMode"].Value ||
+            _SettingsData.DrawVerticalKey.key != this.instance["DrawVerticalKey"].Value ||
+            _SettingsData.DrawVerticalKey.mode != this.instance["DrawVerticalKeyMode"].Value ||
+            _SettingsData.DrawHorizontalKey.key != this.instance["DrawHorizontalKey"].Value ||
+            _SettingsData.DrawHorizontalKey.mode != this.instance["DrawHorizontalKeyMode"].Value ||
             _SettingsData.triggerKey != curTriggerKey ||
             _SettingsData.moveStep != this.instance["MoveStep"].Value ||
             _SettingsData.pickDelay != this.instance["PickDelay"].Value ||
+            _SettingsData.drawDelay != this.instance["DrawDelay"].Value ||
             _SettingsData.playSnd != this.instance["PlaySnd"].Value ||
-            _SettingsData.playSndType != this.instance["PlaySndType"].Value
+            _SettingsData.playSndType != this.instance["PlaySndType"].Value ||
+            _SettingsData.StatusTip.Horizontal != this.instance["StatusTip_Horizontal"].Value ||
+            _SettingsData.StatusTip.Vertical != this.instance["StatusTip_Vertical"].Value ||
+            _SettingsData.StatusTip.margin != this.instance["StatusTip_margin"].Value ||
+            _SettingsData.StatusTip.size != this.instance["StatusTip_size"].Value ||
+            _SettingsData.StatusTip.strokeWidth != this.instance["StatusTip_stroke_width"].Value
             return true
         return false
     }
@@ -322,6 +451,59 @@ class SettingGui {
             this.Close()
         }
     }
+}
+class StatusGui {
+    static instance := false
+    static picControl := false
+    static Init() {
+        if (this.instance)
+            return
+        this.instance := Gui("+AlwaysOnTop -Caption +ToolWindow +LastFound")
+        margin := _SettingsData.StatusTip.strokeWidth
+        size := _SettingsData.StatusTip.size
+        this.picControl := this.instance.AddPicture("x" margin " y" margin " w" size " h" size)
+    }
+    static ImageFiles := [
+        "image/织色如缕.png",
+        "image/摄色流转.png",
+        "image/绘彩巡游.png",
+        "image/纵穿千影.png",
+        "image/横扫苍茫.png"
+    ]
+    static Show(state) {
+        if (state = 0) {
+            this.instance.Hide()
+            return
+        }
+        ImageFiles := this.ImageFiles
+        WinGetPos(&winX, &winY, &winWidth, &winHeight, "A")
+        size := _SettingsData.StatusTip.size + _SettingsData.StatusTip.strokeWidth * 2
+        dpiScale := A_ScreenDPI / 96
+        picWidth := size * dpiScale
+        picHeight := size * dpiScale
+        margin := _SettingsData.StatusTip.margin * dpiScale
+        switch _SettingsData.StatusTip.Horizontal {
+            case 1:
+                picX := winX + margin
+            case 2:
+                picX := winX + (winWidth - picWidth) / 2
+            default:
+                picX := winX + winWidth - picWidth - margin
+        }
+        switch _SettingsData.StatusTip.Vertical {
+            case 1:
+                picY := winY + margin
+            case 2:
+                picY := winY + (winHeight - picHeight) / 2
+            default:
+                picY := winY + winHeight - picHeight - margin
+        }
+        picX := Round(picX)
+        picY := Round(picY)
+        this.picControl.Value := ImageFiles[state]
+        this.instance.Show("x" picX " y" picY " w" size " h" size " NoActivate")
+    }
+    static ChangeColor(color) => this.instance.BackColor := color
 }
 class AudioTools {
     static PlayAudioAsync(mFile) {
@@ -389,6 +571,31 @@ class ColorTools {
         }
         return false
     }
+    static GetLineColors(winX, winY, winWidth, winHeight, startX, startY, direction := "H") {
+        isH := (direction = "H")
+        srcX := isH ? winX : startX
+        srcY := isH ? startY : winY
+        w := isH ? winWidth : 1
+        h := isH ? 1 : winHeight
+        hdcScr := DllCall("GetDC", "ptr", 0, "ptr")
+        hdcMem := DllCall("CreateCompatibleDC", "ptr", hdcScr, "ptr")
+        hbm := DllCall("CreateCompatibleBitmap", "ptr", hdcScr, "int", w, "int", h, "ptr")
+        DllCall("SelectObject", "ptr", hdcMem, "ptr", hbm)
+        DllCall("BitBlt", "ptr", hdcMem, "int", 0, "int", 0, "int", w, "int", h
+            , "ptr", hdcScr, "int", srcX, "int", srcY, "uint", 0xCC0020)
+        colors := []
+        loop (isH ? winWidth : winHeight) {
+            lx := isH ? (A_Index - 1) : 0
+            ly := isH ? 0 : (A_Index - 1)
+            c := DllCall("GetPixel", "ptr", hdcMem, "int", lx, "int", ly, "uint")
+            r := c & 0xFF, g := (c >> 8) & 0xFF, b := (c >> 16) & 0xFF
+            colors.Push(Format("0x{:02X}{:02X}{:02X}", r, g, b))
+        }
+        DllCall("DeleteObject", "ptr", hbm)
+        DllCall("DeleteDC", "ptr", hdcMem)
+        DllCall("ReleaseDC", "ptr", 0, "ptr", hdcScr)
+        return colors
+    }
 }
 class ActionLogic {
     static MouseWinActivate() {
@@ -408,9 +615,10 @@ class ActionLogic {
     static PickAndDraw(key, drawLast) {
         this.MouseWinActivate
         MouseGetPos &mouseX, &mouseY
-        pixelColor := PixelGetColor(mouseX, mouseY, "RGB")
-        if ColorTools.IsSimilarToAny(pixelColor, [0xb1c3eb, 0xc4d6fe, 0x5f7199, 0xfaf7f5, 0x959290, 0xe7e4e2], 4) ||
-        ColorTools.IsSameToAny(pixelColor, [0xf8f4f0, 0x9ebdff])
+        pixelColor := PixelGetColor(mouseX, mouseY)
+        if ColorTools.IsSimilarToAny(pixelColor, ["0xb1c3eb", "0xc4d6fe", "0x5f7199", "0xfaf7f5", "0x959290",
+            "0xe7e4e2"], 4) ||
+        ColorTools.IsSameToAny(pixelColor, ["0xf8f4f0", "0x9ebdff"])
             return
         if this.lastPickColor != pixelColor {
             BlockInput "MouseMove"
@@ -420,6 +628,7 @@ class ActionLogic {
             SendEvent("{Space}")
             BlockInput "MouseMoveOff"
             this.lastPickColor := pixelColor
+            StatusGui.ChangeColor(pixelColor)
         }
         else {
             BlockInput "MouseMove"
@@ -432,18 +641,20 @@ class ActionLogic {
     }
     static DrawLastColor(ShouldContinue) {
         canDraw := false
+        static lastX := -1, lastY := -1
         while ShouldContinue() {
             MouseGetPos &mouseX, &mouseY
             dx := 0, dy := 0
-            if GetKeyState("W", "P")
-                dy -= _SettingsData.moveStep
-            if GetKeyState("S", "P")
-                dy += _SettingsData.moveStep
-            if GetKeyState("A", "P")
-                dx -= _SettingsData.moveStep
-            if GetKeyState("D", "P")
-                dx += _SettingsData.moveStep
-            if (dx != 0 || dy != 0) {
+            step := _SettingsData.moveStep
+            if GetKeyState("w", "P")
+                dy -= step
+            if GetKeyState("s", "P")
+                dy += step
+            if GetKeyState("a", "P")
+                dx -= step
+            if GetKeyState("d", "P")
+                dx += step
+            if (dx || dy) {
                 if GetKeyState("Shift", "P")
                     dx *= 2, dy *= 2
                 else if GetKeyState("Control", "P")
@@ -451,10 +662,13 @@ class ActionLogic {
                 MouseMove mouseX + dx, mouseY + dy, 0
                 mouseX += dx, mouseY += dy
             }
-            pixelColor := PixelGetColor(mouseX, mouseY, "RGB")
+            if (mouseX = lastX && mouseY = lastY) {
+                continue
+            }
+            pixelColor := PixelGetColor(mouseX, mouseY)
             if (canDraw && pixelColor = this.lastPickColor) {
                 BlockInput "MouseMove"
-                SendEvent("{Space}")
+                Send "{Space}"
                 BlockInput "MouseMoveOff"
                 canDraw := false
                 AudioSound.PlayAudioAsync("Draw")
@@ -462,7 +676,85 @@ class ActionLogic {
             else if (!canDraw && pixelColor != this.lastPickColor) {
                 canDraw := true
             }
+            lastX := mouseX
+            lastY := mouseY
         }
+    }
+    static PickAndDrawLine(direction) {
+        this.MouseWinActivate
+        BlockInput "MouseMove"
+        Send("i")
+        Sleep(400)
+        MouseGetPos &mouseX, &mouseY
+        pixelColor := PixelGetColor(mouseX, mouseY)
+        if ColorTools.IsSameToAny(pixelColor, ["0xf8f4f0", "0x9ebdff"]) {
+            SendEvent("{RButton}")
+            BlockInput "MouseMoveOff"
+            return
+        }
+        this.lastPickColor := pixelColor
+        SendEvent("{LButton}")
+        Sleep(_SettingsData.pickDelay)
+        SendEvent("{Space}")
+        Sleep _SettingsData.drawDelay
+        StatusGui.ChangeColor(pixelColor)
+        AudioSound.PlayAudioAsync("Pick")
+        this.DrawLastColorLine(direction)
+    }
+    static DrawLastColorLine(direction) {
+        this.MouseWinActivate
+        MouseGetPos &mx, &my
+        target := this.lastPickColor
+        winId := WinExist("A")
+        WinGetPos &wx, &wy, &ww, &wh, winId
+        if (mx < wx || mx >= wx + ww || my < wy || my >= wy + wh)
+            return
+        isH := (direction = "H")
+        colors := ColorTools.GetLineColors(wx, wy, ww, wh, mx, my, direction)
+        idx := isH ? (mx - wx) : (my - wy)
+        initialColor := colors[idx + 1]
+        points := []
+        inSeg := false
+        len := isH ? ww : wh
+        loop len {
+            i := A_Index - 1
+            col := colors[A_Index]
+            pos := isH ? (wx + i) : (wy + i)
+            if (col = target) {
+                if (!inSeg) {
+                    start := pos
+                    inSeg := true
+                }
+            } else if (inSeg) {
+                end := pos - 1
+                initialPosVal := isH ? mx : my
+                if (!(start <= initialPosVal && initialPosVal <= end && initialColor = target)) {
+                    points.Push(isH ? [start, my] : [mx, start])
+                }
+                inSeg := false
+            }
+        }
+        if (inSeg) {
+            end := isH ? (wx + len - 1) : (wy + len - 1)
+            initialPosVal := isH ? mx : my
+            if (!(start <= initialPosVal && initialPosVal <= end && initialColor = target)) {
+                points.Push(isH ? [start, my] : [mx, start])
+            }
+        }
+        if (!points.Length) {
+            BlockInput "MouseMoveOff"
+            return
+        }
+        MouseGetPos &ox, &oy
+        BlockInput "MouseMove"
+        for p in points {
+            MouseMove p[1], p[2], 0
+            SendEvent("{Space}")
+            Sleep _SettingsData.drawDelay
+        }
+        BlockInput "MouseMoveOff"
+        AudioSound.PlayAudioAsync("Draw")
+        MouseMove ox, oy, 0
     }
     static Drag(key) {
         MouseGetPos(&startX, &startY)
@@ -522,12 +814,14 @@ State := {
     Normal: 0,
     Fill: 1,
     PickAndDraw: 2,
-    FillOnHoverPickOnClick: 3
+    FillOnHoverPickOnClick: 3,
+    DrawVertical: 4,
+    DrawHorizontal: 5
 }
 _state := State.Normal
 SwitchState(newState) {
     global _state := newState
-    ShowStatusText(newState)
+    StatusGui.Show(newState)
 }
 SwitchState_KeyHeldDown(newState, key) {
     global _state
@@ -545,19 +839,6 @@ SwitchState_KeyDown(newState) {
     SwitchState(newState)
     return true
 }
-ShowStatusText(state) {
-    if (state = 0) {
-        ToolTip
-        return
-    }
-    StateNames := [
-        "恒彩灌注",
-        "灵犀转色",
-        "绘彩巡游"
-    ]
-    WinGetPos(, , &winWidth, , "A")
-    ToolTip StateNames[state], winWidth / 2, 20
-}
 if _SettingsData.menuKey
     Hotkey(_SettingsData.menuKey, (*) => SettingGui.Show())
 if _SettingsData.fillKey.key
@@ -573,7 +854,7 @@ if _SettingsData.fillKey.key
             HotIf (*) => IsWplaceWindow() && _state = State.Fill
             Hotkey("*" _SettingsData.triggerKey, (*) => ActionLogic.Fill(_SettingsData.triggerKey))
         case KeyMode.directly:
-            HotIf
+            HotIf (*) => IsWplaceWindow()
             Hotkey("*" _SettingsData.fillKey.key, (*) => ActionLogic.Fill(_SettingsData.fillKey.key))
     }
 if _SettingsData.pickAndDrawKey.key
@@ -590,7 +871,7 @@ if _SettingsData.pickAndDrawKey.key
             HotIf (*) => IsWplaceWindow() && _state = State.PickAndDraw
             Hotkey("*" _SettingsData.triggerKey, (*) => ActionLogic.PickAndDraw(_SettingsData.triggerKey, true))
         case KeyMode.directly:
-            HotIf
+            HotIf (*) => IsWplaceWindow()
             Hotkey("*" _SettingsData.pickAndDrawKey.key, (*) => ActionLogic.PickAndDraw(_SettingsData.pickAndDrawKey.key,
                 true))
     }
@@ -600,12 +881,14 @@ if _SettingsData.fillOnHoverPickOnClickKey.key
             HotIfWinActive TitleWindowUsed
             Hotkey(_SettingsData.fillOnHoverPickOnClickKey.key, (*) => Switch_FillOnHoverPickOnClick_KeyHeldDown())
             Switch_FillOnHoverPickOnClick_KeyHeldDown() {
+                global _state
+                oldState := _state
                 SwitchState State.FillOnHoverPickOnClick
                 ActionLogic.DrawLastColor((*) => End_FillOnHoverPickOnClick_KeyUp())
                 End_FillOnHoverPickOnClick_KeyUp() {
                     if GetKeyState(_SettingsData.fillOnHoverPickOnClickKey.key, "P")
                         return true
-                    SwitchState State.Normal
+                    SwitchState oldState
                     return false
                 }
             }
@@ -613,13 +896,13 @@ if _SettingsData.fillOnHoverPickOnClickKey.key
             Hotkey("*" _SettingsData.triggerKey, (*) => ActionLogic.PickAndDraw(_SettingsData.triggerKey, false))
         case KeyMode.toggle:
             HotIfWinActive TitleWindowUsed
-            Hotkey(_SettingsData.fillOnHoverPickOnClickKey.key, (*) => Switch_FillOnHoverPickOnClick_KeyDown(), "T2")
+            Hotkey(_SettingsData.fillOnHoverPickOnClickKey.key, (*) => Switch_FillOnHoverPickOnClick_KeyDown())
             Switch_FillOnHoverPickOnClick_KeyDown() {
                 if SwitchState_KeyDown(State.FillOnHoverPickOnClick)
-                    ActionLogic.DrawLastColor((*) => End_FillOnHoverPickOnClick_LeaveWin())
+                    SetTimer (*) => ActionLogic.DrawLastColor((*) => End_FillOnHoverPickOnClick_LeaveWin()), -1
                 End_FillOnHoverPickOnClick_LeaveWin() {
                     if !WinActive(TitleWindowUsed) {
-                        Switch_FillOnHoverPickOnClick_KeyDown
+                        SwitchState_KeyDown(State.Normal)
                         return false
                     }
                     return _state = State.FillOnHoverPickOnClick
@@ -628,6 +911,46 @@ if _SettingsData.fillOnHoverPickOnClickKey.key
             HotIf (*) => IsWplaceWindow() && _state = State.FillOnHoverPickOnClick
             Hotkey("*" _SettingsData.triggerKey, (*) => ActionLogic.PickAndDraw(_SettingsData.triggerKey, false))
     }
+if _SettingsData.DrawVerticalKey.key
+    switch _SettingsData.DrawVerticalKey.mode {
+        case KeyMode.heldDown:
+            HotIfWinActive TitleWindowUsed
+            Hotkey(_SettingsData.DrawVerticalKey.key, (*) => SwitchState_KeyHeldDown(State.DrawVertical, _SettingsData.DrawVerticalKey
+                .key))
+            HotIf (*) => IsWplaceWindow() && _state = State.DrawVertical
+            Hotkey("*" _SettingsData.triggerKey, (*) => ActionLogic.DrawLastColorLine("V"))
+            Hotkey("+" _SettingsData.triggerKey, (*) => ActionLogic.PickAndDrawLine("V"))
+        case KeyMode.toggle:
+            HotIfWinActive TitleWindowUsed
+            Hotkey(_SettingsData.DrawVerticalKey.key, (*) => SwitchState_KeyDown(State.DrawVertical))
+            HotIf (*) => IsWplaceWindow() && _state = State.DrawVertical
+            Hotkey("*" _SettingsData.triggerKey, (*) => ActionLogic.DrawLastColorLine("V"))
+            Hotkey("+" _SettingsData.triggerKey, (*) => ActionLogic.PickAndDrawLine("V"))
+        case KeyMode.directly:
+            HotIf (*) => IsWplaceWindow()
+            Hotkey("*" _SettingsData.DrawVerticalKey.key, (*) => ActionLogic.DrawLastColorLine("V"))
+            Hotkey("+" _SettingsData.DrawVerticalKey.key, (*) => ActionLogic.PickAndDrawLine("V"))
+    }
+if _SettingsData.DrawHorizontalKey.key
+    switch _SettingsData.DrawHorizontalKey.mode {
+        case KeyMode.heldDown:
+            HotIfWinActive TitleWindowUsed
+            Hotkey(_SettingsData.DrawHorizontalKey.key, (*) => SwitchState_KeyHeldDown(State.DrawHorizontal,
+                _SettingsData.DrawHorizontalKey.key))
+            HotIf (*) => IsWplaceWindow() && _state = State.DrawHorizontal
+            Hotkey("*" _SettingsData.triggerKey, (*) => ActionLogic.DrawLastColorLine("H"))
+            Hotkey("+" _SettingsData.triggerKey, (*) => ActionLogic.PickAndDrawLine("H"))
+        case KeyMode.toggle:
+            HotIfWinActive TitleWindowUsed
+            Hotkey(_SettingsData.DrawHorizontalKey.key, (*) => SwitchState_KeyDown(State.DrawHorizontal))
+            HotIf (*) => IsWplaceWindow() && _state = State.DrawHorizontal
+            Hotkey("*" _SettingsData.triggerKey, (*) => ActionLogic.DrawLastColorLine("H"))
+            Hotkey("+" _SettingsData.triggerKey, (*) => ActionLogic.PickAndDrawLine("H"))
+        case KeyMode.directly:
+            HotIf (*) => IsWplaceWindow()
+            Hotkey("*" _SettingsData.DrawHorizontalKey.key, (*) => ActionLogic.DrawLastColorLine("H"))
+            Hotkey("+" _SettingsData.DrawHorizontalKey.key, (*) => ActionLogic.PickAndDrawLine("H"))
+    }
 HotIf (*) => WinActive(TitleWindowUsed)
 Hotkey("*w", (*) => "")
 Hotkey("*a", (*) => "")
@@ -635,9 +958,15 @@ Hotkey("*s", (*) => "")
 Hotkey("*d", (*) => "")
 HotIf (*) => IsWplaceWindow()
 Hotkey("MButton", (*) => ActionLogic.Drag("MButton"))
+HotIf (*) => IsWplaceWindow()
+Hotkey("*h", (*) => ActionLogic.DrawLastColorLine("H"))
+Hotkey("*v", (*) => ActionLogic.DrawLastColorLine("V"))
 if _SettingsData.openWplaceOnStart
     Run(_SettingsData.wplaceWeb)
 if _SettingsData.openCustomOnStart && _SettingsData.customUrl != ""
     Run(_SettingsData.customUrl)
 if _SettingsData.openThisPageOnStart
     SettingGui.Show()
+StatusGui.Init()
+CoordMode "Pixel", "Screen"
+CoordMode "Mouse", "Screen"
