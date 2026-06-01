@@ -5,8 +5,10 @@ class SettingsData {
     customUrl := ""
     openCustomOnStart := false
     pauseKey := "Esc"
+    triggerKey := "LButton"
     fillKey := "z"
     pickKey := "x"
+    pickDelay := 100
     wplaceWeb := "https://wplace.live/"
     openThisPageOnStart := true
     playSnd := false
@@ -23,6 +25,8 @@ class WplaceConfig {
             _SettingsData.customUrl := IniRead(WplaceConfig.file, "Startup", "CustomUrl")
             _SettingsData.openCustomOnStart := IniRead(WplaceConfig.file, "Startup", "OpenCustom")
             _SettingsData.playSnd := IniRead(WplaceConfig.file, "Other", "PlaySnd")
+            _SettingsData.triggerKey := IniRead(WplaceConfig.file, "Hotkeys", "TriggerKey")
+            _SettingsData.pickDelay := IniRead(WplaceConfig.file, "Delay", "PickDelay")
         }
     }
     static save() {
@@ -34,10 +38,12 @@ class WplaceConfig {
         IniWrite(_SettingsData.customUrl, WplaceConfig.file, "Startup", "CustomUrl")
         IniWrite(_SettingsData.openCustomOnStart, WplaceConfig.file, "Startup", "OpenCustom")
         IniWrite(_SettingsData.playSnd, WplaceConfig.file, "Other", "PlaySnd")
+        IniWrite(_SettingsData.triggerKey, WplaceConfig.file, "Hotkeys", "TriggerKey")
+        IniWrite(_SettingsData.pickDelay, WplaceConfig.file, "Delay", "PickDelay")
     }
 }
 #Requires AutoHotkey v2.0
-class FootTools {
+class FontTools {
     static ScaleFontSize(baseSize) {
         dpiFactor := A_ScreenDPI / 96
         exponent := 0.06
@@ -45,38 +51,70 @@ class FootTools {
         return baseSize
     }
 }
-class PauseGui {
+class StringTools {
+    static HotkeyToString(hotkey) {
+        modMap := Map("^", "Ctrl", "!", "Alt", "+", "Shift", "#", "Win")
+        modNames := ""
+        mainKey := hotkey
+        for modChar, modName in modMap {
+            if InStr(mainKey, modChar) {
+                modNames .= (modNames != "" ? " + " : "") modName
+                mainKey := StrReplace(mainKey, modChar)
+            }
+        }
+        keyName := GetKeyName(mainKey)
+        switch keyName {
+            case "LButton":
+                keyName := "左键"
+            case "Space":
+                keyName := "空格"
+            default:
+        }
+        if modNames != ""
+            return modNames " + " keyName
+        else
+            return keyName
+    }
+}
+class IME {
+    static SetEnglish() {
+        DllCall("LoadKeyboardLayout", "Str", "00000409", "Int", 1)
+    }
+}
+class SettingGui {
     static instance := false
     static Show() {
         if !this.instance {
             this.instance := Gui()
             this.instance.Opt("-SysMenu +DPIScale")
-            h1_font := "s" FootTools.ScaleFontSize(14) " bold"
-            h2_font := "s" FootTools.ScaleFontSize(12) " bold"
-            body_font := "norm s" FootTools.ScaleFontSize(11)
+            h1_font := "s" FontTools.ScaleFontSize(14) " bold"
+            h2_font := "s" FontTools.ScaleFontSize(12) " bold"
+            body_font := "norm s" FontTools.ScaleFontSize(11)
             h2_first_transform := "x30 y80"
             h2_transform := "x30 y+20"
             body_transform := "x40 y+10"
-            this.instance.Title := "Ciallo～(∠・ω< )⌒★                  Wplace工具 - 暂停中"
+            this.instance.Title := "Ciallo～(∠・ω< )⌒★                  Wplace工具 - 菜单"
             this.instance.SetFont(h2_font)
             this.instance.AddText("x30", "作者：洛迪 |")
             this.instance.SetFont(body_font)
             this.instance.AddLink("x+10",
                 'b站主页：<a href="https://space.bilibili.com/418324770">space.bilibili.com/418324770</a>')
-            tab := this.instance.AddTab3("x18 y+10 w480 h440", ["介绍", "设置", "赞助"])
+            tab := this.instance.AddTab3("x18 y+10 w480 h480", ["介绍", "设置", "赞助"])
             tab.UseTab("介绍")
             this.instance.SetFont(h2_font)
             this.instance.AddText(h2_first_transform, "功能说明：")
             this.instance.SetFont(body_font)
-            this.instance.AddText(body_transform, "
+            this.instance.AddText(body_transform, Format("
 			(
-				1-通过持续按住功能按键时可使【鼠标左键点击时执行多种功能】
+				可按【{1}】打开该菜单
 
-				·当持续按住【填充键】时，长按左键连续填充当前颜色
+				1-通过持续按住功能按键时可使【{4}】点击时执行多种功能
 
-				·当持续按住【取色键】时，点击左键取色后立即填入该颜色，
+				·当持续按住【{2}】时，长按【{4}】连续填充当前颜色
+
+				·当持续按住【{3}】时，点击【{4}】取色后立即填入该颜色，
 				
-				  如果长按鼠标，如果滑动到本次取色的颜色，则自动填充
+				  如果继续长按【{4}】，并滑动到相同于本次取色的颜色，则自动填充
 
 				  用途-点击Blue Marble生成的小方块，取色填色更方便了
 
@@ -87,12 +125,20 @@ class PauseGui {
 				2-拖动画布（地图）也可直接使用鼠标中键
 
 				3-右键擦除颜色（网站原有功能，只是提醒一下）
-)"
-            )
+)",
+                StringTools.HotkeyToString(_SettingsData.pauseKey),
+                StringTools.HotkeyToString(_SettingsData.fillKey),
+                StringTools.HotkeyToString(_SettingsData.pickKey),
+                StringTools.HotkeyToString(_SettingsData.triggerKey)))
             this.instance.SetFont(h2_font)
             this.instance.AddText(h2_transform, "注意事项：")
             this.instance.SetFont(body_font)
-            this.instance.AddText(body_transform, "键位可替换，如需替换，请移步设置选项卡（上方），`n`n（也可以改成鼠标两个侧键）")
+            this.instance.AddText(body_transform, "
+			(
+				键位可替换，如需替换，请移步设置选项卡
+
+				如果【取色后立即填入该颜色】功能无法触发，请调高取色延迟！
+)")
             tab.UseTab("设置")
             this.instance.SetFont(h2_font)
             this.instance.AddText(h2_first_transform, "启动设置")
@@ -118,6 +164,11 @@ class PauseGui {
             this.instance.AddButton("yp w60", "重置").OnEvent("Click", (*) => (pickHK.Value := _SettingsDataDefault.pickKey
             ))
             this.instance.SetFont(h2_font)
+            this.instance.AddText(h2_transform, "延迟设置")
+            this.instance.SetFont(body_font)
+            this.instance.AddText(body_transform " w120", "取色延迟(ms)：")
+            pickDelayEdit := this.instance.AddEdit("vPickDelay yp w80 Number", _SettingsData.pickDelay)
+            this.instance.SetFont(h2_font)
             this.instance.AddText(h2_transform, "其他设置")
             this.instance.SetFont(body_font)
             this.instance.AddCheckbox(body_transform " vPlaySnd", "涂色时播放曼波音效~").Value := _SettingsData.playSnd
@@ -132,11 +183,10 @@ class PauseGui {
             this.instance.AddButton("yp w234", "开始使用").OnEvent("Click", (*) => this.OnStartClick())
             this.instance.OnEvent("Close", (*) => ExitApp())
             this.instance.Show("w514 ")
-            Suspend(true)
+            IME.SetEnglish()
         }
     }
     static Close() {
-        Suspend(false)
         try this.instance.Destroy()
         this.instance := false
     }
@@ -151,6 +201,8 @@ class PauseGui {
             _SettingsData.fillKey := this.instance["FillKey"].Value
         if this.instance["PickKey"].Value
             _SettingsData.pickKey := this.instance["PickKey"].Value
+        if this.instance["PickDelay"].Value
+            _SettingsData.pickDelay := Integer(this.instance["PickDelay"].Value)
         _SettingsData.playSnd := this.instance["PlaySnd"].Value
         WplaceConfig.save()
         Reload()
@@ -163,7 +215,8 @@ class PauseGui {
             _SettingsData.pauseKey != this.instance["PauseKey"].Value ||
             _SettingsData.fillKey != this.instance["FillKey"].Value ||
             _SettingsData.pickKey != this.instance["PickKey"].Value ||
-            _SettingsData.playSnd != this.instance["PlaySnd"].Value
+            _SettingsData.playSnd != this.instance["PlaySnd"].Value ||
+            _SettingsData.pickDelay != Integer(this.instance["PickDelay"].Value)
             return true
         return false
     }
@@ -183,30 +236,32 @@ class PauseGui {
         }
     }
 }
-PlayAudioAsync(mFile) {
-    DN := GetAudioDuration(mFile)
-    DllCall("Winmm\mciSendString", "Str", 'Open "' mFile '"', "UInt", 0, "UInt", 0, "UInt", 0)
-    DllCall("Winmm\mciSendString", "Str", 'Play "' mFile '" FROM 000 to ' DN, "UInt", 0, "UInt", 0, "UInt", 0)
-}
-StopPlayback(mFile) {
-    DllCall("Winmm\mciSendString", "Str", "Close " mFile, "UInt", 0, "UInt", 0, "UInt", 0)
-}
-GetAudioDuration(mFile) {
-    DN := Buffer(16)
-    DllCall("Winmm\mciSendStringW", "Str", 'Open "' mFile '" Alias MP3', "UInt", 0, "UInt", 0, "UInt", 0)
-    DllCall("Winmm\mciSendStringW", "Str", "Status MP3 Length", "Ptr", DN.Ptr, "UInt", 16, "UInt", 0)
-    DllCall("Winmm\mciSendStringW", "Str", "Close MP3", "UInt", 0, "UInt", 0, "UInt", 0)
-    return StrGet(DN)
+class AudioTools {
+    static PlayAudioAsync(mFile) {
+        DN := this.GetAudioDuration(mFile)
+        DllCall("Winmm\mciSendString", "Str", 'Open "' mFile '"', "UInt", 0, "UInt", 0, "UInt", 0)
+        DllCall("Winmm\mciSendString", "Str", 'Play "' mFile '" FROM 000 to ' DN, "UInt", 0, "UInt", 0, "UInt", 0)
+    }
+    static StopPlayback(mFile) {
+        DllCall("Winmm\mciSendString", "Str", "Close " mFile, "UInt", 0, "UInt", 0, "UInt", 0)
+    }
+    static GetAudioDuration(mFile) {
+        DN := Buffer(16)
+        DllCall("Winmm\mciSendStringW", "Str", 'Open "' mFile '" Alias MP3', "UInt", 0, "UInt", 0, "UInt", 0)
+        DllCall("Winmm\mciSendStringW", "Str", "Status MP3 Length", "Ptr", DN.Ptr, "UInt", 16, "UInt", 0)
+        DllCall("Winmm\mciSendStringW", "Str", "Close MP3", "UInt", 0, "UInt", 0, "UInt", 0)
+        return StrGet(DN)
+    }
 }
 class AudioSound {
     static soundMap := Map(
-        "click-down", A_ScriptDir "\sounds\click-down.wav",
-        "click-up", A_ScriptDir "\sounds\click-up.wav",
-        "click", A_ScriptDir "\sounds\click.wav",
-        "click-2", A_ScriptDir "\sounds\click-2.wav"
+        "曼波↗", A_ScriptDir "\sounds\曼波↗.wav",
+        "曼波↘", A_ScriptDir "\sounds\曼波↘.wav",
+        "哦耶", A_ScriptDir "\sounds\哦耶.wav",
+        "wow~", A_ScriptDir "\sounds\wow~.wav",
     )
     static PlayAudioAsync(name) {
-        PlayAudioAsync this.soundMap[name]
+        AudioTools.PlayAudioAsync this.soundMap[name]
     }
 }
 class ColorTools {
@@ -246,6 +301,20 @@ class ColorTools {
         return false
     }
 }
+class HotkeyTools {
+    static IsComboPressed(comboStr, mode := "P") {
+        modifiers := Map("^", "Ctrl", "!", "Alt", "+", "Shift", "#", "Win")
+        mainKey := comboStr
+        for symbol, keyName in modifiers {
+            if InStr(comboStr, symbol) {
+                if !GetKeyState(keyName, mode)
+                    return false
+                mainKey := StrReplace(mainKey, symbol)
+            }
+        }
+        return GetKeyState(mainKey, mode)
+    }
+}
 class ActionLogic {
     static DoLBtn() {
         if !this.IsWplaceWindow(&winId) {
@@ -254,8 +323,6 @@ class ActionLogic {
         }
         if WinExist("A") != winId
             WinActivate("ahk_id " winId)
-        if (_SettingsData.playSnd)
-            AudioSound.PlayAudioAsync("click")
         this.ByKey()
     }
     static DoMBtn() {
@@ -280,16 +347,20 @@ class ActionLogic {
         SendEvent("{" key " up}")
     }
     static ByKey() {
-        if GetKeyState(_SettingsData.fillKey, "P")
+        if HotkeyTools.IsComboPressed(_SettingsData.fillKey, "P")
             this.Fill()
-        else if GetKeyState(_SettingsData.pickKey, "P")
+        else if HotkeyTools.IsComboPressed(_SettingsData.pickKey, "P")
             this.Pick()
         else this.Normal("LButton")
     }
     static Fill() {
         SendEvent("{Space down}")
+        if (_SettingsData.playSnd)
+            AudioSound.PlayAudioAsync("曼波↗")
         KeyWait("LButton")
         SendEvent("{Space up}")
+        if (_SettingsData.playSnd)
+            AudioSound.PlayAudioAsync("曼波↘")
     }
     static lastPickColor := false
     static Pick() {
@@ -302,7 +373,7 @@ class ActionLogic {
             BlockInput "MouseMove"
             Send("i")
             SendEvent("{LButton}")
-            Sleep(100)
+            Sleep(_SettingsData.pickDelay)
             SendEvent("{Space}")
             BlockInput "MouseMoveOff"
             this.lastPickColor := pixelColor
@@ -312,6 +383,8 @@ class ActionLogic {
             SendEvent("{Space}")
             BlockInput "MouseMoveOff"
         }
+        if (_SettingsData.playSnd)
+            AudioSound.PlayAudioAsync("哦耶")
         canDraw := false
         while GetKeyState("LButton", "P") {
             MouseGetPos &mouseX, &mouseY
@@ -320,7 +393,7 @@ class ActionLogic {
                 BlockInput "MouseMove"
                 SendEvent("{Space}")
                 if (_SettingsData.playSnd)
-                    AudioSound.PlayAudioAsync("click-2")
+                    AudioSound.PlayAudioAsync("wow~")
                 BlockInput "MouseMoveOff"
                 canDraw := false
             }
@@ -348,10 +421,11 @@ class ActionLogic {
 global _SettingsData := SettingsData()
 global _SettingsDataDefault := SettingsData()
 WplaceConfig.load()
-A_TrayMenu.Delete()
-A_TrayMenu.Add("⚙️ 暂停/设置", (*) => PauseGui.Show())
-A_TrayMenu.Add("❌ 退出", (*) => ExitApp())
-Hotkey(_SettingsData.pauseKey, (*) => PauseGui.Show(), "I1")
+try A_TrayMenu.Delete("&Pause Script")
+try A_TrayMenu.Rename("&Suspend Hotkeys", "暂停(&S)")
+try A_TrayMenu.Rename("E&xit", "退出(&X)")
+A_TrayMenu.Insert("1&", "设置(&T)", (*) => SettingGui.Show())
+Hotkey(_SettingsData.pauseKey, (*) => SettingGui.Show(), "I1")
 Hotkey("LButton", (*) => ActionLogic.DoLBtn())
 Hotkey("MButton", (*) => ActionLogic.DoMBtn())
 if _SettingsData.openWplaceOnStart
@@ -359,4 +433,4 @@ if _SettingsData.openWplaceOnStart
 if _SettingsData.openCustomOnStart && _SettingsData.customUrl != ""
     Run(_SettingsData.customUrl)
 if _SettingsData.openThisPageOnStart
-    PauseGui.Show()
+    SettingGui.Show()
