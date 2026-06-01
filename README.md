@@ -1,3 +1,5 @@
+<img width="1440" height="360" alt="logo2" src="https://github.com/user-attachments/assets/f0a5c095-a838-4c31-ae6a-2eb0a18d0359" />
+
 **Wplace快捷小工具简介**
 
 总之能识别颜色然后快速填入，不是bot，只是个按键触发软件，但是很方便，能省很多时间，具体看下4和5功能就知道有多方便了
@@ -29,3 +31,8 @@
 
 **其他便捷操作**
 使用鼠标中键可以拖动画布
+
+---
+<img width="1271" height="687" alt="提示图例" src="https://github.com/user-attachments/assets/03d034a3-3008-413c-b1fd-ce46a1034a61" />
+<img width="1505" height="846" alt="wplace工具宣传封面图" src="https://github.com/user-attachments/assets/a97efdc4-27d1-4f5f-a1f1-02b3105a46bd" />
+
