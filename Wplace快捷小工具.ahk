@@ -76,7 +76,7 @@ class PauseGui {
 
 				·当持续按住【取色键】时，点击左键取色后立即填入该颜色，
 				
-				  如果持续长按左键则取色后执行连续填充
+				  如果长按鼠标，如果滑动到本次取色的颜色，则自动填充
 
 				  用途-点击Blue Marble生成的小方块，取色填色更方便了
 
@@ -201,7 +201,9 @@ GetAudioDuration(mFile) {
 class AudioSound {
     static soundMap := Map(
         "click-down", A_ScriptDir "\sounds\click-down.wav",
-        "click-up", A_ScriptDir "\sounds\click-up.wav"
+        "click-up", A_ScriptDir "\sounds\click-up.wav",
+        "click", A_ScriptDir "\sounds\click.wav",
+        "click-2", A_ScriptDir "\sounds\click-2.wav"
     )
     static PlayAudioAsync(name) {
         PlayAudioAsync this.soundMap[name]
@@ -252,6 +254,8 @@ class ActionLogic {
         }
         if WinExist("A") != winId
             WinActivate("ahk_id " winId)
+        if (_SettingsData.playSnd)
+            AudioSound.PlayAudioAsync("click")
         this.ByKey()
     }
     static DoMBtn() {
@@ -284,14 +288,10 @@ class ActionLogic {
     }
     static Fill() {
         SendEvent("{Space down}")
-        if (_SettingsData.playSnd)
-            AudioSound.PlayAudioAsync("click-down")
         KeyWait("LButton")
         SendEvent("{Space up}")
-        if (_SettingsData.playSnd)
-            AudioSound.PlayAudioAsync("click-up")
     }
-    static lastPickColor := ""
+    static lastPickColor := false
     static Pick() {
         MouseGetPos &mouseX, &mouseY
         pixelColor := PixelGetColor(mouseX, mouseY, "RGB")
@@ -303,10 +303,31 @@ class ActionLogic {
             Send("i")
             SendEvent("{LButton}")
             Sleep(100)
+            SendEvent("{Space}")
             BlockInput "MouseMoveOff"
             this.lastPickColor := pixelColor
         }
-        this.Fill()
+        else {
+            BlockInput "MouseMove"
+            SendEvent("{Space}")
+            BlockInput "MouseMoveOff"
+        }
+        canDraw := false
+        while GetKeyState("LButton", "P") {
+            MouseGetPos &mouseX, &mouseY
+            pixelColor := PixelGetColor(mouseX, mouseY, "RGB")
+            if (canDraw && pixelColor = this.lastPickColor) {
+                BlockInput "MouseMove"
+                SendEvent("{Space}")
+                if (_SettingsData.playSnd)
+                    AudioSound.PlayAudioAsync("click-2")
+                BlockInput "MouseMoveOff"
+                canDraw := false
+            }
+            else if (!canDraw && pixelColor != this.lastPickColor) {
+                canDraw := true
+            }
+        }
     }
     static Drag(startX, startY) {
         isDragging := false
