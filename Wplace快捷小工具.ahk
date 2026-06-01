@@ -59,7 +59,9 @@ class PauseGui {
 
  ·当持续按住【填充键】时，长按左键连续填充当前颜色
 
- ·当持续按住【取色键】时，点击左键取色后立即填入该颜色
+ ·当持续按住【取色键】时，点击左键取色后立即填入该颜色，
+   
+   如果持续长按左键则取色后执行连续填充
 
    用途-点击Blue Marble生成的小方块，取色填色更方便了
 
@@ -75,7 +77,7 @@ class PauseGui {
             this.instance.SetFont("s12 bold")
             this.instance.AddText("x30 y+20", "注意事项：")
             this.instance.SetFont()
-            this.instance.AddText("x40 y+10 w550", "键位可替换，如需替换，请移步设置选项卡（上方）")
+            this.instance.AddText("x40 y+10 w550", "键位可替换，如需替换，请移步设置选项卡（上方），`n`n（也可以改成鼠标两个侧键）")
             tab.UseTab("设置")
             this.instance.SetFont("s12 bold")
             this.instance.AddText("x30 y120", "启动设置")
@@ -166,31 +168,39 @@ class ColorTools {
         }
         return false
     }
+    static IsDifferentToAny(color, arr) {
+        for k, v in arr {
+            if color = v
+                return false
+        }
+        return true
+    }
 }
 class ActionLogic {
     static DoLBtn() {
-        if !this.IsWplaceWindow() {
+        if !this.IsWplaceWindow(&winId) {
             this.Normal("LButton")
             return
         }
-        MouseGetPos(, , &winId)
-        if winId && WinGetID("A") != winId
+        if WinExist("A") != winId
             WinActivate("ahk_id " winId)
         this.ByKey()
     }
     static DoMBtn() {
         MouseGetPos(&startX, &startY)
-        if !this.IsWplaceWindow() {
+        if !this.IsWplaceWindow(&winId) {
             this.Normal("MButton")
             return
         }
         this.Drag(startX, startY)
     }
-    static IsWplaceWindow() {
+    static IsWplaceWindow(&winId) {
         MouseGetPos(, , &winId)
-        if (winId)
+        if (winId) {
             title := WinGetTitle(winId)
-        return InStr(title, "Wplace - Paint the world")
+            return InStr(title, "Wplace - Paint the world")
+        }
+        else return false
     }
     static Normal(key) {
         SendEvent("{" key " down}")
@@ -213,18 +223,18 @@ class ActionLogic {
     static Pick() {
         MouseGetPos &mouseX, &mouseY
         pixelColor := PixelGetColor(mouseX, mouseY, "RGB")
-        if ColorTools.IsSimilarToAny(pixelColor, [0xb1c3eb, 0xc4d6fe, 0x5f7199, 0xfaf7f5, 0x959290, 0xe7e4e2], 2)
+        if ColorTools.IsSimilarToAny(pixelColor, [0xb1c3eb, 0xc4d6fe, 0x5f7199, 0xfaf7f5, 0x959290, 0xe7e4e2], 4) &&
+        ColorTools.IsDifferentToAny(pixelColor, [0xf8f4f0, 0x9ebdff])
             return
-        if this.lastPickColor = pixelColor
-            SendEvent("{Space}")
-        else {
+        if this.lastPickColor != pixelColor {
+            BlockInput "MouseMove"
             Send("i")
             SendEvent("{LButton}")
             Sleep(100)
-            MouseMove mouseX, mouseY, 0
-            SendEvent("{Space}")
+            BlockInput "MouseMoveOff"
             this.lastPickColor := pixelColor
         }
+        this.Fill()
     }
     static Drag(startX, startY) {
         isDragging := false
